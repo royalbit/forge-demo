@@ -1,0 +1,27 @@
+# Rust build artifacts
+target/
+
+# Binaries
+bin/*
+!bin/.keep
+forge-e2e
+forge-e2e.exe
+tests/forge
+tests/forge.exe
+tests/forge-demo
+tests/forge-demo.exe
+
+# Output files
+*.xlsx
+*.csv
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.claude_checkpoint.yaml

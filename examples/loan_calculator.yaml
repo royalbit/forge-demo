@@ -1,0 +1,28 @@
+# Loan Calculator Demo
+# Forge v1.0.0 Schema - Scalar Only
+#
+# Run: forge calculate loan_calculator.yaml
+# Export: forge export loan_calculator.yaml --output loan_calculator.xlsx
+
+_forge_version: "1.0.0"
+
+scalars:
+  principal: 500000
+  annual_rate: 0.065
+  years: 30
+  monthly_rate: =annual_rate / 12
+  num_payments: =years * 12
+  monthly_payment: =PMT(monthly_rate, num_payments, -principal)
+  total_payments: =monthly_payment * num_payments
+  total_interest: =total_payments - principal
+  interest_ratio: =total_interest / principal
+  annual_payment: =monthly_payment * 12
+  annual_income: 150000
+  monthly_income: =annual_income / 12
+  dti_ratio: =monthly_payment / monthly_income
+  is_affordable: =IF(dti_ratio <= 0.28, 1, 0)
+  alt_years: 15
+  alt_num_payments: =alt_years * 12
+  alt_monthly_payment: =PMT(monthly_rate, alt_num_payments, -principal)
+  alt_total_interest: =(alt_monthly_payment * alt_num_payments) - principal
+  interest_saved: =total_interest - alt_total_interest

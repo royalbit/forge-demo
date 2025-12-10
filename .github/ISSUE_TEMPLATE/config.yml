@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/royalbit/forge/tree/main/docs
+    about: Check our documentation before opening an issue
+  - name: Download Forge
+    url: https://royalbit.ca/forge/
+    about: Download the Forge binary

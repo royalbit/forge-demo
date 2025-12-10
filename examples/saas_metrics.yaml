@@ -1,0 +1,42 @@
+# SaaS Unit Economics
+# Forge v1.0.0 Schema - Basic Demo
+#
+# Run: forge calculate saas_metrics.yaml
+# Export: forge export saas_metrics.yaml --output saas_metrics.xlsx
+
+_forge_version: "1.0.0"
+
+scalars:
+  # Customer Metrics
+  customers_start: 1000
+  new_customers: 150
+  churned_customers: 50
+  customers_end: "=customers_start + new_customers - churned_customers"
+
+  # Churn Rate
+  monthly_churn_rate: "=churned_customers / customers_start"
+  annual_churn_rate: "=1 - (1 - monthly_churn_rate)^12"
+
+  # Revenue Metrics
+  arpu: 99  # Average Revenue Per User (monthly)
+  mrr_start: "=customers_start * arpu"
+  mrr_end: "=customers_end * arpu"
+  mrr_growth: "=(mrr_end - mrr_start) / mrr_start"
+  arr: "=mrr_end * 12"
+
+  # Customer Acquisition
+  marketing_spend: 45000
+  sales_spend: 30000
+  total_cac_spend: "=marketing_spend + sales_spend"
+  cac: "=total_cac_spend / new_customers"  # Cost to Acquire Customer
+
+  # Customer Lifetime Value
+  avg_customer_lifespan: "=1 / monthly_churn_rate"  # months
+  ltv: "=arpu * avg_customer_lifespan"
+
+  # Unit Economics
+  ltv_cac_ratio: "=ltv / cac"
+  payback_months: "=cac / arpu"
+
+  # Health Check
+  is_healthy: "=IF(ltv_cac_ratio >= 3, 1, 0)"  # 3:1 is benchmark

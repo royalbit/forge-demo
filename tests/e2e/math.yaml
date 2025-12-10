@@ -1,0 +1,89 @@
+# E2E Math Function Tests
+# Validated against Gnumeric/LibreOffice
+
+_forge_version: "1.0.0"
+
+assumptions:
+  # ABS
+  test_abs_positive:
+    value: null
+    formula: "=ABS(42)"
+    expected: 42
+
+  test_abs_negative:
+    value: null
+    formula: "=ABS(-42)"
+    expected: 42
+
+  test_abs_zero:
+    value: null
+    formula: "=ABS(0)"
+    expected: 0
+
+  # SQRT
+  test_sqrt_perfect:
+    value: null
+    formula: "=SQRT(144)"
+    expected: 12
+
+  test_sqrt_four:
+    value: null
+    formula: "=SQRT(4)"
+    expected: 2
+
+  # POWER
+  test_power_squared:
+    value: null
+    formula: "=POWER(2, 10)"
+    expected: 1024
+
+  test_power_cubed:
+    value: null
+    formula: "=POWER(3, 3)"
+    expected: 27
+
+  # MOD
+  test_mod_basic:
+    value: null
+    formula: "=MOD(10, 3)"
+    expected: 1
+
+  test_mod_exact:
+    value: null
+    formula: "=MOD(12, 4)"
+    expected: 0
+
+  # ROUND
+  test_round_up:
+    value: null
+    formula: "=ROUND(2.567, 2)"
+    expected: 2.57
+
+  test_round_down:
+    value: null
+    formula: "=ROUND(2.564, 2)"
+    expected: 2.56
+
+  # ROUNDUP
+  test_roundup_pos:
+    value: null
+    formula: "=ROUNDUP(2.321, 2)"
+    expected: 2.33
+
+  # ROUNDDOWN
+  test_rounddown_pos:
+    value: null
+    formula: "=ROUNDDOWN(2.789, 2)"
+    expected: 2.78
+
+  # FLOOR
+  test_floor_basic:
+    value: null
+    formula: "=FLOOR(2.7, 1)"
+    expected: 2
+
+  # CEILING
+  test_ceiling_basic:
+    value: null
+    formula: "=CEILING(2.3, 1)"
+    expected: 3

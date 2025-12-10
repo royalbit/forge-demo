@@ -1,0 +1,47 @@
+# Quarterly P&L Statement
+# Forge v1.0.0 Schema - Basic Demo
+#
+# Run: forge calculate quarterly_pl.yaml
+# Export: forge export quarterly_pl.yaml --output quarterly_pl.xlsx
+
+_forge_version: "1.0.0"
+
+scalars:
+  # Revenue
+  q1_revenue: 250000
+  q2_revenue: 275000
+  q3_revenue: 300000
+  q4_revenue: 350000
+  total_revenue: "=SUM(q1_revenue, q2_revenue, q3_revenue, q4_revenue)"
+
+  # Cost of Goods Sold (40% of revenue)
+  q1_cogs: "=q1_revenue * 0.40"
+  q2_cogs: "=q2_revenue * 0.40"
+  q3_cogs: "=q3_revenue * 0.40"
+  q4_cogs: "=q4_revenue * 0.40"
+  total_cogs: "=SUM(q1_cogs, q2_cogs, q3_cogs, q4_cogs)"
+
+  # Gross Profit
+  q1_gross: "=q1_revenue - q1_cogs"
+  q2_gross: "=q2_revenue - q2_cogs"
+  q3_gross: "=q3_revenue - q3_cogs"
+  q4_gross: "=q4_revenue - q4_cogs"
+  total_gross: "=total_revenue - total_cogs"
+  gross_margin: "=total_gross / total_revenue"
+
+  # Operating Expenses
+  salaries: 180000
+  rent: 48000
+  marketing: 60000
+  other_opex: 24000
+  total_opex: "=SUM(salaries, rent, marketing, other_opex)"
+
+  # Operating Income
+  operating_income: "=total_gross - total_opex"
+  operating_margin: "=operating_income / total_revenue"
+
+  # Net Income (25% tax rate)
+  tax_rate: 0.25
+  taxes: "=IF(operating_income > 0, operating_income * tax_rate, 0)"
+  net_income: "=operating_income - taxes"
+  net_margin: "=net_income / total_revenue"
