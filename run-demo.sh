@@ -1,8 +1,9 @@
 #!/bin/bash
-# Run forge-e2e: Download latest binaries from GitHub releases and run
+# Run forge-e2e: E2E validation tool for forge-demo
 # Usage: ./run-demo.sh [--all]
 #
-# Uses curl -z for conditional GET (only downloads if remote is newer)
+# Downloads forge-e2e from GitHub releases (or builds locally)
+# Requires forge-demo binary in bin/ (build from main forge repo)
 
 set -e
 
@@ -71,7 +72,6 @@ download_binary() {
         fi
     else
         if [ ! -f "$dest" ]; then
-            echo "Error: Failed to download $name"
             return 1
         fi
         echo "  Using cached $name"
@@ -81,57 +81,55 @@ download_binary() {
 # Map platform to archive names
 case "$PLATFORM" in
     aarch64-apple-darwin)
-        # forge-demo uses simple names (no archive)
-        DEMO_ASSET="forge-demo-macos-arm64"
         E2E_ARCHIVE="forge-e2e-aarch64-apple-darwin.tar.gz"
         ;;
     x86_64-apple-darwin)
-        DEMO_ASSET="forge-demo-macos-x86_64"
         E2E_ARCHIVE="forge-e2e-x86_64-apple-darwin.tar.gz"
         ;;
     x86_64-unknown-linux-gnu)
-        DEMO_ASSET="forge-demo-linux-x86_64"
         E2E_ARCHIVE="forge-e2e-x86_64-unknown-linux-gnu.tar.gz"
         ;;
     aarch64-unknown-linux-gnu)
-        DEMO_ASSET="forge-demo-linux-arm64"
         E2E_ARCHIVE="forge-e2e-aarch64-unknown-linux-gnu.tar.gz"
         ;;
     x86_64-pc-windows-msvc)
-        DEMO_ASSET="forge-demo-windows.exe"
         E2E_ARCHIVE="forge-e2e-x86_64-pc-windows-msvc.zip"
         ;;
 esac
 
-# Download forge-demo from royalbit/forge-demo
-echo "Checking forge-demo..."
-DEMO_URL="https://github.com/royalbit/forge-demo/releases/latest/download/$DEMO_ASSET"
-if curl -fsSL -z "$FORGE_DEMO" -o "$FORGE_DEMO.tmp" "$DEMO_URL"; then
-    if [ -f "$FORGE_DEMO.tmp" ] && [ -s "$FORGE_DEMO.tmp" ]; then
-        mv "$FORGE_DEMO.tmp" "$FORGE_DEMO"
+# Check for forge-demo binary
+if [ ! -f "$FORGE_DEMO" ]; then
+    echo "forge-demo binary not found at $FORGE_DEMO"
+    echo ""
+    echo "To build forge-demo from the main forge repo:"
+    echo "  cd /path/to/forge"
+    echo "  cargo build --release --bin forge-demo"
+    echo "  cp target/release/forge-demo $BIN_DIR/"
+    echo ""
+
+    # Try to build from parent directory if forge repo exists
+    FORGE_REPO="$SCRIPT_DIR/../forge"
+    if [ -f "$FORGE_REPO/Cargo.toml" ]; then
+        echo "Found forge repo at $FORGE_REPO, building..."
+        cargo build --release --bin forge-demo --manifest-path "$FORGE_REPO/Cargo.toml"
+        cp "$FORGE_REPO/target/release/forge-demo" "$FORGE_DEMO"
         chmod +x "$FORGE_DEMO"
-        echo "  Downloaded forge-demo"
+        echo "Built forge-demo successfully"
     else
-        rm -f "$FORGE_DEMO.tmp"
-        echo "  forge-demo is up to date"
-    fi
-else
-    rm -f "$FORGE_DEMO.tmp"
-    if [ ! -f "$FORGE_DEMO" ]; then
-        echo "Error: Failed to download forge-demo"
+        echo "Error: forge repo not found. Please build forge-demo manually."
         exit 1
     fi
-    echo "  Using cached forge-demo"
 fi
 
-# Download forge-e2e from royalbit/forge-demo
+# Download forge-e2e from royalbit/forge-demo releases
 E2E_URL="https://github.com/royalbit/forge-demo/releases/latest/download/$E2E_ARCHIVE"
 download_binary "forge-e2e" "$E2E_URL" "$FORGE_E2E" "$E2E_ARCHIVE" || {
-    echo "Note: forge-e2e not released yet. Building locally..."
+    echo "Downloading forge-e2e failed. Building locally..."
     if command -v cargo &> /dev/null; then
         cargo build --release --manifest-path "$SCRIPT_DIR/Cargo.toml"
         cp "$SCRIPT_DIR/target/release/forge-e2e" "$FORGE_E2E"
         chmod +x "$FORGE_E2E"
+        echo "Built forge-e2e successfully"
     else
         echo "Error: cargo not found. Install Rust or wait for forge-e2e release."
         exit 1
