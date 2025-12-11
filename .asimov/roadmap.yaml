@@ -36,12 +36,9 @@ current:
   status: pending
   notes: "Add E2E tests for all 48 demo functions"
   deliverables:
-    - task: "Audit current E2E test coverage"
-      status: pending
-    - task: "Add missing function tests"
-      status: pending
-    - task: "Ensure all 48 demo functions have E2E validation"
-      status: pending
+    - "Audit current E2E test coverage"
+    - "Add missing function tests"
+    - "Ensure all 48 demo functions have E2E validation"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # NEXT
