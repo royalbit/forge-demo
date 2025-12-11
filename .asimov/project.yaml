@@ -27,28 +27,29 @@ forge:
       binary: "forge-demo"
       command: "cargo build --release --bin forge-demo"
       features: []
-      functions: 37
+      functions: 48
       schema: "v1.0.0 only"
     enterprise:
       binary: "forge"
       command: "cargo build --release --features full"
       features: ["full"]
-      functions: 154
+      functions: 160
       schema: "v1.0.0, v5.0.0"
 
   # Quick reference:
   # | Build      | Command                               | Binary     | Functions |
   # |------------|---------------------------------------|------------|-----------|
-  # | Demo       | cargo build --release                 | forge-demo | 37        |
-  # | Enterprise | cargo build --release --features full | forge      | 154       |
+  # | Demo       | cargo build --release                 | forge-demo | 48        |
+  # | Enterprise | cargo build --release --features full | forge      | 160       |
 
   demo_functions:
-    math: ["ABS", "SQRT", "ROUND", "ROUNDUP", "ROUNDDOWN", "FLOOR", "CEILING", "MOD", "POWER"]
+    math: ["ABS", "SQRT", "ROUND", "ROUNDUP", "ROUNDDOWN", "FLOOR", "CEILING", "MOD", "POWER", "EXP", "LN", "LOG10", "INT", "SIGN", "TRUNC", "PI"]
     aggregation: ["SUM", "AVERAGE", "MIN", "MAX", "COUNT"]
     logical: ["IF", "AND", "OR", "NOT", "IFERROR"]
     text: ["CONCAT", "LEFT", "RIGHT", "MID", "LEN", "UPPER", "LOWER", "TRIM", "REPT"]
     date: ["TODAY", "DATE", "YEAR", "MONTH", "DAY", "DATEDIF"]
-    lookup: ["INDEX", "MATCH", "CHOOSE"]
+    lookup: ["CHOOSE"]  # INDEX/MATCH require arrays (enterprise only)
+    trig: ["SIN", "COS", "TAN", "ASIN", "ACOS", "ATAN"]
 
   schema_v1:
     description: "Scalar-only model (no arrays, no tables)"
@@ -166,15 +167,10 @@ files:
     location: "bin/"
     note: "bin/* gitignored, bin/.keep tracked"
     forge_demo:
-      description: "Forge demo binary (downloaded from GitHub releases)"
+      description: "Forge demo binary (built from local forge repo)"
       path: "bin/forge-demo"
-      download: "https://github.com/royalbit/forge/releases/latest/download/{archive}"
-      platforms:
-        aarch64-apple-darwin: "forge-demo-aarch64-apple-darwin.tar.gz"
-        x86_64-apple-darwin: "forge-demo-x86_64-apple-darwin.tar.gz"
-        x86_64-unknown-linux-gnu: "forge-demo-x86_64-unknown-linux-gnu.tar.gz"
-        aarch64-unknown-linux-gnu: "forge-demo-aarch64-unknown-linux-gnu.tar.gz"
-        x86_64-pc-windows-msvc: "forge-demo-x86_64-pc-windows-msvc.zip"
+      build: "cargo build --release --bin forge-demo --manifest-path ../forge/Cargo.toml"
+      note: "Built locally from sibling forge repo, not distributed via releases"
     forge_e2e:
       description: "E2E validation tool (built by CI or locally)"
       path: "bin/forge-e2e"
