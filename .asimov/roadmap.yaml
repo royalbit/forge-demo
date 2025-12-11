@@ -2,111 +2,52 @@
 # Version: Cargo.toml | History: CHANGELOG.md | Config: project.yaml
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# COMPLETED
+# ═══════════════════════════════════════════════════════════════════════════════
+
+completed:
+  - version: "1.0.0"
+    date: "2025-12-10"
+    summary: "E2E Validation TUI (forge-e2e)"
+    deliverables:
+      - "Rust CLI with ratatui TUI"
+      - "Validates against Gnumeric/LibreOffice (ssconvert --recalc)"
+      - "48 demo functions, v1.0.0 schema (scalar only)"
+      - "Exact match comparison (no tolerance - financial tool)"
+      - "Cross-platform binaries via GitHub Releases"
+
+  - version: "1.0.2"
+    date: "2025-12-10"
+    summary: "Schema Integrity Fix"
+    deliverables:
+      - "Verified examples/*.yaml are valid v1.0.0 (scalar-only)"
+      - "forge v7.2.6: ADR-014 schema versioning, JSON schema validation"
+      - "forge v7.2.7: Upgrade command gated to enterprise only"
+      - "Git history squashed (4 commits)"
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # CURRENT
 # ═══════════════════════════════════════════════════════════════════════════════
 
 current:
-  version: "1.0.0"
-  summary: "E2E Validation TUI (forge-e2e)"
-  priority: HIGH
-  status: completed
-  notes: |
-    Problem: Current E2E tests are smoke tests only (test "did it error?"
-    not "is the value correct?")
-
-    Solution: Rust CLI with ratatui TUI
-    - Validates against Gnumeric/LibreOffice (ssconvert --recalc)
-    - ./forge-e2e (TUI default) or ./forge-e2e --all (verbose headless)
-    - Exact match comparison (no tolerance - financial tool)
-
+  version: "1.1.0"
+  summary: "Test Coverage Expansion"
+  priority: NORMAL
+  status: pending
+  notes: "Add E2E tests for all 48 demo functions"
   deliverables:
-    - task: "Create Cargo.toml with ratatui, crossterm, serde_yaml, tempfile, colored"
+    - task: "Audit current E2E test coverage"
       status: pending
-
-    - task: "Implement platform detection + binary download"
+    - task: "Add missing function tests"
       status: pending
-      details: |
-        - Detect platform (aarch64-apple-darwin, x86_64-unknown-linux-gnu, etc.)
-        - Download forge-demo from GitHub releases (curl -z for conditional GET)
-        - Download forge-e2e from GitHub releases (for run-demo.sh)
-        - Binaries location: bin/ (gitignored, bin/.keep tracked)
-
-    - task: "Create tests/e2e/*.yaml with expected values"
+    - task: "Ensure all 48 demo functions have E2E validation"
       status: pending
-      details: |
-        - YAML format (not TOML)
-        - Each test has: formula + expected value
-        - No tolerance (exact match for financial tool)
-
-    - task: "Implement spreadsheet engine detection"
-      status: pending
-      details: |
-        - Priority 1: ssconvert (Gnumeric) with --recalc flag
-        - Priority 2: libreoffice --headless (fallback)
-        - Check multiple paths for LibreOffice
-
-    - task: "Implement test runner: Forge XLSX → ssconvert → compare CSV"
-      status: pending
-      details: |
-        - forge-demo export model.yaml output.xlsx
-        - ssconvert --recalc output.xlsx output.csv
-        - Parse CSV, compare values (exact match)
-
-    - task: "Implement src/main.rs CLI with --all flag"
-      status: pending
-      details: |
-        - Default: TUI mode (ratatui)
-        - --all: verbose headless with colored YAML output
-
-    - task: "Implement src/tui.rs ratatui interface"
-      status: pending
-      details: "Show test progress, pass/fail, value comparisons on failure"
-
-    - task: "Create run-demo.sh script"
-      status: pending
-      details: |
-        - Downloads latest forge-e2e from GitHub releases
-        - Detects platform, extracts to bin/
-        - Runs forge-e2e (TUI) or forge-e2e --all
-
-    - task: "Remove old smoke tests (e2e_*.yaml in tests/, run_e2e.sh)"
-      status: pending
-
-    - task: "Update README with forge-e2e usage"
-      status: pending
-
-    - task: "Build cross-platform binaries, GitHub Release"
-      status: pending
-      details: "CI/CD workflow based on ../asimov/.github/workflows/release.yml"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # NEXT
 # ═══════════════════════════════════════════════════════════════════════════════
 
 next:
-  - version: "1.0.2"
-    summary: "CRITICAL - Schema Integrity Fix"
-    priority: CRITICAL
-    status: pending
-    notes: |
-      CRITICAL: Schema enforcement broken
-      - v1.0.0 = SCALAR ONLY (no arrays, no tables)
-      - v5.0.0 = ARRAYS/TABLES allowed
-      - Auto-upgrade v1.0.0 → v5.0.0 must be KILLED in forge-demo binary
-      - examples/cashflow.yaml uses arrays - INVALID for v1.0.0, must fix or remove
-      - Git repo cleanup needed (squash commits or recreate repo)
-    deliverables:
-      - "Remove/fix examples/cashflow.yaml (uses arrays, invalid v1.0.0)"
-      - "Update docs to clarify v1.0.0 = scalar only"
-      - "Coordinate with forge repo for auto-upgrade removal"
-      - "Clean git history (19 commits - consider squash or repo recreate)"
-
-  - version: "1.1.0"
-    summary: "Test Coverage Expansion"
-    priority: NORMAL
-    status: pending
-    notes: "Add E2E tests for all 37 demo functions"
-
   - version: "1.2.0"
     summary: "Regression Detection"
     priority: NORMAL
