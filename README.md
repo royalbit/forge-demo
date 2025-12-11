@@ -121,7 +121,7 @@ Engine: Gnumeric (ssconvert) (gnumeric 1.12.57)
 | Version | v7.2.0 - 100% Test Integrity |
 | Lines of Code | 28,000 (Rust) |
 | Test Coverage | 90% |
-| Automated Tests | 1,267 |
+| Automated Tests | 1,258 |
 | Demo Functions | 48 |
 | Enterprise Functions | 160 |
 
