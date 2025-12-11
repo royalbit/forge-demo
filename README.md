@@ -122,12 +122,12 @@ Engine: Gnumeric (ssconvert) (gnumeric 1.12.57)
 | Lines of Code | 28,000 (Rust) |
 | Test Coverage | 90% |
 | Automated Tests | 1,267 |
-| Demo Functions | 47 |
-| Enterprise Functions | 159 |
+| Demo Functions | 48 |
+| Enterprise Functions | 160 |
 
 ---
 
-## Demo Features (47 Functions)
+## Demo Features (48 Functions)
 
 | Category | Count | Functions |
 |----------|-------|-----------|
@@ -146,7 +146,7 @@ See [docs/FUNCTIONS.md](docs/FUNCTIONS.md) for the complete function reference.
 
 The enterprise edition (licensed separately) includes:
 
-- **159 functions** (148 Excel + 6 FP&A that Excel doesn't have)
+- **160 functions** (148 Excel + 6 FP&A that Excel doesn't have)
 - **Financial functions** — NPV, IRR, PMT, PV, FV, XNPV, XIRR
 - **FP&A functions** — VARIANCE, VARIANCE_PCT, BREAKEVEN_UNITS, BREAKEVEN_REVENUE
 - **Statistical functions** — MEDIAN, VAR, STDEV, PERCENTILE

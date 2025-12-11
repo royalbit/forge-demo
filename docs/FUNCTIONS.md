@@ -1,6 +1,6 @@
-# Forge Demo Functions (47 Total)
+# Forge Demo Functions (48 Total)
 
-The demo version includes 47 Excel-compatible functions for basic financial modeling.
+The demo version includes 48 Excel-compatible functions for basic financial modeling.
 
 ## Math Functions (9)
 
@@ -73,7 +73,7 @@ The demo version includes 47 Excel-compatible functions for basic financial mode
 
 ---
 
-## Enterprise Version (159 Functions)
+## Enterprise Version (160 Functions)
 
 The enterprise version includes additional functions for professional financial modeling:
 

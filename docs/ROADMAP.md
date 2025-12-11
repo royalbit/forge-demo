@@ -6,7 +6,7 @@ This document outlines what's available and in development for Forge.
 
 The demo version is available now with:
 
-- 47 Excel functions
+- 48 Excel functions
 - v1.0.0 schema (scalars only - no arrays/tables)
 - Excel export
 - E2E validation suite (1,267 tests passing)
@@ -18,7 +18,7 @@ The demo version is available now with:
 
 | Feature | Demo | Enterprise |
 |---------|------|------------|
-| Functions | 47 basic | 159 (153 Excel + 6 FP&A) |
+| Functions | 48 basic | 160 (153 Excel + 6 FP&A) |
 | Schema | v1.0.0 only | v1.0.0 + v5.0.0 |
 | Rich metadata | No | Yes (unit, notes, source) |
 | Cross-file includes | No | Yes |
