@@ -1,12 +1,13 @@
 [package]
 name = "forge-e2e"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2021"
 authors = ["RoyalBit Inc. <admin@royalbit.ca>"]
 description = "E2E validation tool for forge-demo - validates calculations against Gnumeric/LibreOffice"
 repository = "https://github.com/royalbit/forge-demo"
-license = "MIT"
+license-file = "LICENSE"
 readme = "README.md"
+publish = false
 
 [[bin]]
 name = "forge-e2e"

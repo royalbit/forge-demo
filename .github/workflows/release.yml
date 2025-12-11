@@ -2,15 +2,44 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
+    paths:
+      - 'Cargo.toml'
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  check-version:
+    name: Check Version
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if version changed
+        id: check
+        run: |
+          VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Check if tag already exists
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "Tag v$VERSION already exists, skipping release"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          else
+            echo "New version v$VERSION detected, will release"
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          fi
+
   test:
     name: Test Suite
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,7 +69,8 @@ jobs:
 
   build:
     name: Build ${{ matrix.target }}
-    needs: test
+    needs: [check-version, test]
+    if: needs.check-version.outputs.should_release == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -54,20 +84,19 @@ jobs:
 
           # Linux ARM64
           - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
+            os: ubuntu-24.04-arm
             archive: tar.gz
             upx: false
-            cross: true
 
           # macOS ARM (M1/M2/M3)
           - target: aarch64-apple-darwin
-            os: macos-latest
+            os: macos-14
             archive: tar.gz
             upx: false
 
           # macOS Intel
           - target: x86_64-apple-darwin
-            os: macos-latest
+            os: macos-13
             archive: tar.gz
             upx: false
 
@@ -94,16 +123,8 @@ jobs:
             target
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Install cross-compilation tools (Linux ARM64)
-        if: matrix.cross
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-
       - name: Build release
         run: cargo build --release --target ${{ matrix.target }}
-        env:
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: ${{ matrix.cross && 'aarch64-linux-gnu-gcc' || '' }}
 
       - name: Install UPX (Linux)
         if: matrix.upx && matrix.os == 'ubuntu-latest'
@@ -144,7 +165,8 @@ jobs:
 
   release:
     name: Create Release
-    needs: build
+    needs: [check-version, build]
+    if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -173,6 +195,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ needs.check-version.outputs.version }}
+          name: v${{ needs.check-version.outputs.version }}
           generate_release_notes: true
           files: |
             artifacts/**/*.tar.gz

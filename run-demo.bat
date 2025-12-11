@@ -2,7 +2,7 @@
 REM Run forge-e2e: E2E validation tool for forge-demo
 REM Usage: run-demo.bat [--all]
 REM
-REM Downloads forge-e2e from GitHub releases (or builds locally)
+REM Downloads forge-e2e from GitHub releases
 REM Requires forge-demo binary in bin\ (build from main forge repo)
 
 setlocal enabledelayedexpansion
@@ -48,15 +48,14 @@ if not exist "%FORGE_E2E%" (
     echo Downloading forge-e2e...
     curl -fsSL -o "%ARCHIVE_PATH%" "%E2E_URL%"
     if errorlevel 1 (
-        echo Download failed. Building locally...
-        where cargo >nul 2>nul
-        if errorlevel 1 (
-            echo Error: cargo not found. Install Rust or wait for forge-e2e release.
-            exit /b 1
-        )
-        cargo build --release --manifest-path "%SCRIPT_DIR%Cargo.toml"
-        copy "%SCRIPT_DIR%target\release\forge-e2e.exe" "%FORGE_E2E%"
-        echo Built forge-e2e successfully
+        echo.
+        echo Error: Failed to download forge-e2e
+        echo No release found at: %E2E_URL%
+        echo.
+        echo To build and publish releases, run:
+        echo   make publish
+        echo.
+        exit /b 1
     ) else (
         echo Extracting...
         powershell -Command "Expand-Archive -Path '%ARCHIVE_PATH%' -DestinationPath '%BIN_DIR%' -Force"

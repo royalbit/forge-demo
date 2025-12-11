@@ -2,7 +2,7 @@
 # Run forge-e2e: E2E validation tool for forge-demo
 # Usage: ./run-demo.sh [--all]
 #
-# Downloads forge-e2e from GitHub releases (or builds locally)
+# Downloads forge-e2e from GitHub releases
 # Requires forge-demo binary in bin/ (build from main forge repo)
 
 set -e
@@ -124,16 +124,14 @@ fi
 # Download forge-e2e from royalbit/forge-demo releases
 E2E_URL="https://github.com/royalbit/forge-demo/releases/latest/download/$E2E_ARCHIVE"
 download_binary "forge-e2e" "$E2E_URL" "$FORGE_E2E" "$E2E_ARCHIVE" || {
-    echo "Downloading forge-e2e failed. Building locally..."
-    if command -v cargo &> /dev/null; then
-        cargo build --release --manifest-path "$SCRIPT_DIR/Cargo.toml"
-        cp "$SCRIPT_DIR/target/release/forge-e2e" "$FORGE_E2E"
-        chmod +x "$FORGE_E2E"
-        echo "Built forge-e2e successfully"
-    else
-        echo "Error: cargo not found. Install Rust or wait for forge-e2e release."
-        exit 1
-    fi
+    echo ""
+    echo "Error: Failed to download forge-e2e"
+    echo "No release found at: $E2E_URL"
+    echo ""
+    echo "To build and publish releases, run:"
+    echo "  make publish"
+    echo ""
+    exit 1
 }
 
 echo ""
