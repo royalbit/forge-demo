@@ -134,7 +134,7 @@ assumptions:
     formula: "=ABS(-42)"
     expected: 42
 "#;
-        let spec: TestSpec = serde_yaml::from_str(yaml).unwrap();
+        let spec: TestSpec = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(spec.forge_version, "1.0.0");
 
         let cases = extract_test_cases(&spec);

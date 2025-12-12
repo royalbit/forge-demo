@@ -48,7 +48,7 @@ impl TestRunner {
 
             if path.extension().map(|e| e == "yaml").unwrap_or(false) {
                 let content = fs::read_to_string(&path)?;
-                match serde_yaml::from_str::<TestSpec>(&content) {
+                match serde_yaml_ng::from_str::<TestSpec>(&content) {
                     Ok(spec) => {
                         let cases = extract_test_cases(&spec);
                         all_cases.extend(cases);
