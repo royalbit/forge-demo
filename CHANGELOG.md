@@ -25,7 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 #### Features
 - 48 Excel-compatible functions (demo subset)
-- E2E validation against Gnumeric/LibreOffice (70 test cases)
+- E2E validation against Gnumeric (70 test cases)
 - YAML-based formula definitions
 - CLI for calculation, export, and validation
 

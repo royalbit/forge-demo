@@ -1,5 +1,5 @@
 # E2E Text Function Tests
-# Validated against Gnumeric/LibreOffice
+# Validated against Gnumeric
 # Note: Text functions return strings - we wrap with LEN for numeric validation
 # Note: String literals with letters (e.g., "Hello") require enterprise schema
 

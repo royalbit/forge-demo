@@ -1,5 +1,5 @@
 # E2E Date Function Tests
-# Validated against Gnumeric/LibreOffice
+# Validated against Gnumeric
 # Note: TODAY is dynamic - we test YEAR(TODAY()) equals current year
 
 _forge_version: "1.0.0"

@@ -1,5 +1,5 @@
 # E2E Lookup Function Tests
-# Validated against Gnumeric/LibreOffice
+# Validated against Gnumeric
 # Note: Lookup functions typically need array context, testing with CHOOSE
 
 _forge_version: "1.0.0"

@@ -1,6 +1,6 @@
 //! forge-e2e: E2E validation tool for forge-demo
 //!
-//! Validates forge-demo calculations against Gnumeric/LibreOffice.
+//! Validates forge-demo calculations against Gnumeric.
 //! Default: TUI mode | --all: verbose headless mode
 
 mod engine;

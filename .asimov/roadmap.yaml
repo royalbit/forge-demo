@@ -11,7 +11,7 @@ completed:
     summary: "E2E Validation TUI (forge-e2e)"
     deliverables:
       - "Rust CLI with ratatui TUI"
-      - "Validates against Gnumeric/LibreOffice (ssconvert --recalc)"
+      - "Validates against Gnumeric (ssconvert --recalc)"
       - "48 demo functions, v1.0.0 schema (scalar only)"
       - "Exact match comparison (no tolerance - financial tool)"
       - "Cross-platform binaries via GitHub Releases"
