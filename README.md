@@ -66,7 +66,7 @@ Available for Linux (x86_64, arm64), macOS (Intel + Apple Silicon), and Windows.
 
 ## Validation
 
-Forge formulas are validated against Gnumeric and LibreOffice Calc using `forge-e2e`.
+Forge formulas are validated against [Gnumeric](https://www.gnumeric.org/) using `forge-e2e`.
 
 ### Quick Start
 
@@ -109,8 +109,20 @@ Engine: Gnumeric (ssconvert) (gnumeric 1.12.57)
 
 ### Requirements
 
-- **Gnumeric** (preferred): `ssconvert --version`
-- **LibreOffice** (fallback): `libreoffice --version`
+**Gnumeric** is required for E2E validation:
+
+```bash
+# macOS
+brew install gnumeric
+
+# Linux (Debian/Ubuntu)
+sudo apt install gnumeric
+
+# Linux (Fedora)
+sudo dnf install gnumeric
+```
+
+Verify installation: `ssconvert --version`
 
 ---
 

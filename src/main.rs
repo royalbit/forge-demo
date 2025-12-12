@@ -48,7 +48,7 @@ fn main() -> ExitCode {
         }
         None => {
             eprintln!(
-                "{} No spreadsheet engine found (ssconvert/libreoffice required)",
+                "{} Gnumeric not found. Install with: brew install gnumeric (macOS) or apt install gnumeric (Linux)",
                 "ERROR:".red().bold()
             );
             return ExitCode::FAILURE;

@@ -78,10 +78,9 @@ forge:
     - "functions - List all supported functions"
 
   validation_flow: |
-    E2E validation compares Forge output against Gnumeric/LibreOffice:
+    E2E validation compares Forge output against Gnumeric:
     1. forge-demo export model.yaml output.xlsx → Excel with formulas
-    2. ssconvert --recalc output.xlsx output.csv → spreadsheet recalculates
-       (or: libreoffice --headless --convert-to csv)
+    2. ssconvert --recalc output.xlsx output.csv → Gnumeric recalculates
     3. Parse CSV, compare Forge values vs spreadsheet values
     4. Exact match required (no tolerance - this is a financial tool)
 
@@ -116,19 +115,14 @@ forge_e2e:
     tolerance: "none (exact match - financial tool)"
     on_mismatch: "Show expected vs got with colored diff"
 
-  engine_detection:
-    priority:
-      1: "ssconvert (Gnumeric) - preferred, properly recalculates with --recalc"
-      2: "libreoffice --headless - fallback"
-    paths_checked:
-      gnumeric: ["ssconvert"]
-      libreoffice:
-        - "/usr/bin/soffice"
-        - "/usr/bin/libreoffice"
-        - "/Applications/LibreOffice.app/Contents/MacOS/soffice"
-        - "/snap/bin/libreoffice"
-        - "soffice"
-        - "libreoffice"
+  engine:
+    name: "Gnumeric (ssconvert)"
+    command: "ssconvert --recalc"
+    install:
+      macos: "brew install gnumeric"
+      linux_deb: "sudo apt install gnumeric"
+      linux_rpm: "sudo dnf install gnumeric"
+    verify: "ssconvert --version"
 
   scripts:
     run_demo: |
