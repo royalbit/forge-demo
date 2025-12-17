@@ -32,7 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Enterprise Teaser
 
-- Display '+126 functions in Enterprise'
+- Display '+125 functions in Enterprise'
 - Demo Mode indicator
 - Upgrade panel in TUI
 

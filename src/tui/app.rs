@@ -14,7 +14,7 @@ use crate::types::TestResult;
 const STATUS_MESSAGE_DURATION: Duration = Duration::from_secs(3);
 
 /// Demo mode function count (v1.0.0 schema).
-pub const DEMO_FUNCTION_COUNT: usize = 47;
+pub const DEMO_FUNCTION_COUNT: usize = 48;
 /// Enterprise function count (full forge).
 pub const ENTERPRISE_FUNCTION_COUNT: usize = 173;
 

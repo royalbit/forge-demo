@@ -2,7 +2,7 @@
 //!
 //! Provides an interactive terminal UI for running E2E validation tests.
 //! - v1.6.0: Performance benchmarks (tests/sec, elapsed time)
-//! - v1.7.0: Function coverage report (X/47 functions validated)
+//! - v1.7.0: Function coverage report (48/48 functions validated)
 //! - v1.8.0: Enterprise teaser (shows locked functions count)
 //! - v1.9.0: Side-by-side comparison mode (toggle with `c` key)
 
