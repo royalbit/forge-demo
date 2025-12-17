@@ -284,12 +284,15 @@ impl TestRunner {
 
     /// Parses batch CSV output to extract results for each test.
     fn parse_batch_csv(csv_path: &Path, count: usize) -> Vec<Result<f64, String>> {
-        let mut results = Vec::with_capacity(count);
+        // Initialize results array with errors - will be filled by index
+        let mut results: Vec<Result<f64, String>> =
+            vec![Err("Missing result in CSV output".to_string()); count];
+
         let file = match fs::File::open(csv_path) {
             Ok(f) => f,
             Err(e) => {
-                for _ in 0..count {
-                    results.push(Err(format!("Failed to open CSV: {e}")));
+                for r in &mut results {
+                    *r = Err(format!("Failed to open CSV: {e}"));
                 }
                 return results;
             }
@@ -303,19 +306,23 @@ impl TestRunner {
                 .map(|s| s.trim_matches('"').trim())
                 .collect();
 
-            // Look for test_N labels and their values
-            for (i, cell) in cells.iter().enumerate() {
-                if cell.starts_with("test_") && i + 1 < cells.len() {
-                    if let Ok(value) = cells[i + 1].replace(',', "").parse::<f64>() {
-                        results.push(Ok(value));
+            // Look for test_N labels and extract index
+            // Format: "assumptions.test_N" or "test_N" in first column, value in second
+            if cells.len() >= 2 {
+                let label = cells[0];
+                if let Some(idx_str) = label
+                    .strip_prefix("assumptions.test_")
+                    .or_else(|| label.strip_prefix("test_"))
+                {
+                    if let Ok(idx) = idx_str.parse::<usize>() {
+                        if idx < count {
+                            if let Ok(value) = cells[1].replace(',', "").parse::<f64>() {
+                                results[idx] = Ok(value);
+                            }
+                        }
                     }
                 }
             }
-        }
-
-        // Pad with errors if not enough results
-        while results.len() < count {
-            results.push(Err("Missing result in CSV output".to_string()));
         }
 
         results
