@@ -45,6 +45,8 @@ pub struct Scalar {
     pub formula: Option<String>,
     /// Expected value for E2E validation (forge-e2e specific).
     pub expected: Option<f64>,
+    /// Skip reason (if set, test is skipped with this message).
+    pub skip: Option<String>,
 }
 
 /// A table column (array of values or formula).
@@ -72,6 +74,15 @@ pub struct TestCase {
     pub formula: String,
     /// The expected result value.
     pub expected: f64,
+}
+
+/// A test case that should be skipped.
+#[derive(Debug, Clone)]
+pub struct SkipCase {
+    /// Fully qualified name (e.g., `assumptions.test_datedif`).
+    pub name: String,
+    /// Reason for skipping.
+    pub reason: String,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -141,7 +152,7 @@ impl TestResult {
 /// Extracts test cases from a test spec.
 ///
 /// Scans all sections for scalar values that have both a formula and
-/// an expected value defined.
+/// an expected value defined. Tests with `skip` field are excluded.
 pub fn extract_test_cases(spec: &TestSpec) -> Vec<TestCase> {
     let mut cases = Vec::new();
 
@@ -153,6 +164,10 @@ pub fn extract_test_cases(spec: &TestSpec) -> Vec<TestCase> {
 
         if let Section::ScalarGroup(scalars) = section {
             for (name, scalar) in scalars {
+                // Skip tests marked with skip field
+                if scalar.skip.is_some() {
+                    continue;
+                }
                 if let (Some(formula), Some(expected)) = (&scalar.formula, scalar.expected) {
                     cases.push(TestCase {
                         name: format!("{section_name}.{name}"),
@@ -163,6 +178,32 @@ pub fn extract_test_cases(spec: &TestSpec) -> Vec<TestCase> {
             }
         }
         // Table tests not yet implemented
+    }
+
+    cases
+}
+
+/// Extracts skip cases from a test spec.
+///
+/// Returns tests that have the `skip` field set.
+pub fn extract_skip_cases(spec: &TestSpec) -> Vec<SkipCase> {
+    let mut cases = Vec::new();
+
+    for (section_name, section) in &spec.sections {
+        if section_name.starts_with('_') || section_name == "scenarios" {
+            continue;
+        }
+
+        if let Section::ScalarGroup(scalars) = section {
+            for (name, scalar) in scalars {
+                if let Some(reason) = &scalar.skip {
+                    cases.push(SkipCase {
+                        name: format!("{section_name}.{name}"),
+                        reason: reason.clone(),
+                    });
+                }
+            }
+        }
     }
 
     cases

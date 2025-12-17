@@ -114,6 +114,7 @@ fn run_all_mode(runner: &TestRunner) -> ExitCode {
 
     let mut passed = 0;
     let mut failed = 0;
+    let mut skipped = 0;
 
     for result in &results {
         match result {
@@ -151,19 +152,32 @@ fn run_all_mode(runner: &TestRunner) -> ExitCode {
                     name.white(),
                     reason.yellow()
                 );
+                skipped += 1;
             }
         }
     }
 
     println!();
     println!("{}", "═".repeat(70).cyan());
-    println!(
-        "  Results: {} {}, {} {}",
-        passed.to_string().green().bold(),
-        "passed".green(),
-        failed.to_string().red().bold(),
-        "failed".red()
-    );
+    if skipped > 0 {
+        println!(
+            "  Results: {} {}, {} {}, {} {}",
+            passed.to_string().green().bold(),
+            "passed".green(),
+            failed.to_string().red().bold(),
+            "failed".red(),
+            skipped.to_string().yellow().bold(),
+            "skipped".yellow()
+        );
+    } else {
+        println!(
+            "  Results: {} {}, {} {}",
+            passed.to_string().green().bold(),
+            "passed".green(),
+            failed.to_string().red().bold(),
+            "failed".red()
+        );
+    }
     println!("{}", "═".repeat(70).cyan());
     println!();
 

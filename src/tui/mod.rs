@@ -2,7 +2,7 @@
 //!
 //! Provides an interactive terminal UI for running E2E validation tests.
 //! - v1.6.0: Performance benchmarks (tests/sec, elapsed time)
-//! - v1.7.0: Function coverage report (47/47 functions validated)
+//! - v1.7.0: Function coverage report (48/48 functions validated)
 //! - v1.8.0: R&D preview teaser (shows locked functions count)
 //! - v1.9.0: Side-by-side comparison mode (toggle with `c` key)
 
@@ -43,8 +43,18 @@ fn run_app(
 ) -> anyhow::Result<bool> {
     let total = runner.total_tests();
     let mut app = App::new(total);
-    let test_cases = runner.test_cases().to_vec();
 
+    // First, add all skip results
+    for skip_case in runner.skip_cases() {
+        app.add_result(crate::types::TestResult::Skip {
+            name: skip_case.name.clone(),
+            reason: skip_case.reason.clone(),
+        });
+        terminal.draw(|frame| draw_ui(frame, &mut app))?;
+    }
+
+    // Then run actual tests
+    let test_cases = runner.test_cases().to_vec();
     for test_case in test_cases {
         if event::poll(Duration::from_millis(10))? {
             if let Event::Key(key) = event::read()? {

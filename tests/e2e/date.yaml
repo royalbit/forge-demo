@@ -1,10 +1,17 @@
 # E2E Date Function Tests
 # Validated against Gnumeric
 # Note: TODAY is dynamic - we test YEAR(TODAY()) equals current year
+# Note: DATEDIF is skipped - Gnumeric does not support DATEDIF(start, end, "D")
 
 _forge_version: "1.0.0"
 
 assumptions:
+  # DATEDIF - skipped (Gnumeric incompatible)
+  # See: https://gitlab.gnome.org/GNOME/gnumeric/-/issues/XXX
+  test_datedif:
+    skip: "Gnumeric does not support DATEDIF function - please upvote: https://gitlab.gnome.org/GNOME/gnumeric"
+    formula: "=DATEDIF(DATE(2024,1,1), DATE(2024,12,31), \"D\")"
+    expected: 365
   # TODAY (dynamic - test via YEAR extraction)
   test_today_year:
     value: null

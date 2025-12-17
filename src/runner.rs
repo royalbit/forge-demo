@@ -13,7 +13,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::engine::SpreadsheetEngine;
-use crate::types::{extract_test_cases, TestCase, TestResult, TestSpec};
+use crate::types::{
+    extract_skip_cases, extract_test_cases, SkipCase, TestCase, TestResult, TestSpec,
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Test Runner
@@ -32,6 +34,8 @@ pub struct TestRunner {
     tests_dir: PathBuf,
     /// All loaded test cases.
     test_cases: Vec<TestCase>,
+    /// All loaded skip cases.
+    skip_cases: Vec<SkipCase>,
 }
 
 impl TestRunner {
@@ -43,19 +47,21 @@ impl TestRunner {
         engine: SpreadsheetEngine,
         tests_dir: PathBuf,
     ) -> anyhow::Result<Self> {
-        let test_cases = Self::load_test_cases(&tests_dir)?;
+        let (test_cases, skip_cases) = Self::load_test_cases(&tests_dir)?;
 
         Ok(Self {
             forge_binary,
             engine,
             tests_dir,
             test_cases,
+            skip_cases,
         })
     }
 
     /// Loads all test cases from the tests directory.
-    fn load_test_cases(tests_dir: &Path) -> anyhow::Result<Vec<TestCase>> {
+    fn load_test_cases(tests_dir: &Path) -> anyhow::Result<(Vec<TestCase>, Vec<SkipCase>)> {
         let mut all_cases = Vec::new();
+        let mut all_skips = Vec::new();
 
         if !tests_dir.exists() {
             anyhow::bail!("Tests directory does not exist: {}", tests_dir.display());
@@ -70,7 +76,9 @@ impl TestRunner {
                 match serde_yaml_ng::from_str::<TestSpec>(&content) {
                     Ok(spec) => {
                         let cases = extract_test_cases(&spec);
+                        let skips = extract_skip_cases(&spec);
                         all_cases.extend(cases);
+                        all_skips.extend(skips);
                     }
                     Err(e) => {
                         eprintln!("Warning: Failed to parse {}: {e}", path.display());
@@ -79,12 +87,12 @@ impl TestRunner {
             }
         }
 
-        Ok(all_cases)
+        Ok((all_cases, all_skips))
     }
 
-    /// Returns the total number of test cases.
+    /// Returns the total number of test cases (including skips).
     pub const fn total_tests(&self) -> usize {
-        self.test_cases.len()
+        self.test_cases.len() + self.skip_cases.len()
     }
 
     /// Returns all test cases.
@@ -92,9 +100,22 @@ impl TestRunner {
         &self.test_cases
     }
 
-    /// Runs all tests and returns results.
+    /// Returns all skip cases.
+    pub fn skip_cases(&self) -> &[SkipCase] {
+        &self.skip_cases
+    }
+
+    /// Runs all tests and returns results (including skips).
     pub fn run_all(&self) -> Vec<TestResult> {
-        self.test_cases.iter().map(|tc| self.run_test(tc)).collect()
+        // Skip results first, then run actual tests
+        self.skip_cases
+            .iter()
+            .map(|sc| TestResult::Skip {
+                name: sc.name.clone(),
+                reason: sc.reason.clone(),
+            })
+            .chain(self.test_cases.iter().map(|tc| self.run_test(tc)))
+            .collect()
     }
 
     /// Runs a single test case.
@@ -268,7 +289,9 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let result = TestRunner::load_test_cases(temp_dir.path());
         assert!(result.is_ok());
-        assert!(result.unwrap().is_empty());
+        let (cases, skips) = result.unwrap();
+        assert!(cases.is_empty());
+        assert!(skips.is_empty());
     }
 
     #[test]
@@ -292,7 +315,7 @@ assumptions:
 
         let result = TestRunner::load_test_cases(temp_dir.path());
         assert!(result.is_ok());
-        let cases = result.unwrap();
+        let (cases, _) = result.unwrap();
         assert_eq!(cases.len(), 1);
     }
 
@@ -304,7 +327,8 @@ assumptions:
 
         let result = TestRunner::load_test_cases(temp_dir.path());
         assert!(result.is_ok());
-        assert!(result.unwrap().is_empty());
+        let (cases, _) = result.unwrap();
+        assert!(cases.is_empty());
     }
 }
 
