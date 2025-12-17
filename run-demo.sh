@@ -2,8 +2,9 @@
 # Run forge-e2e: E2E validation tool for forge-demo
 # Usage: ./run-demo.sh [--all]
 #
-# Downloads forge-e2e from GitHub releases
-# Requires forge-demo binary in bin/ (build from main forge repo)
+# Downloads both binaries from royalbit/forge-demo GitHub releases:
+#   - forge-demo (raw binary, from forge-demo release tag)
+#   - forge-e2e (tar.gz archive, from forge-e2e release tag)
 
 set -e
 
@@ -11,14 +12,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN_DIR="$SCRIPT_DIR/bin"
 FORGE_E2E="$BIN_DIR/forge-e2e"
 FORGE_DEMO="$BIN_DIR/forge-demo"
+REPO="royalbit/forge-demo"
 
 # Detect platform
 detect_platform() {
     case "$(uname -s)" in
         Linux*)
             case "$(uname -m)" in
-                aarch64|arm64) echo "aarch64-unknown-linux-gnu" ;;
-                *)             echo "x86_64-unknown-linux-gnu" ;;
+                aarch64|arm64) echo "aarch64-unknown-linux-musl" ;;
+                *)             echo "x86_64-unknown-linux-musl" ;;
             esac
             ;;
         Darwin*)
@@ -27,7 +29,7 @@ detect_platform() {
                 *)     echo "x86_64-apple-darwin" ;;
             esac
             ;;
-        MINGW*|MSYS*|CYGWIN*) echo "x86_64-pc-windows-msvc" ;;
+        MINGW*|MSYS*|CYGWIN*) echo "x86_64-pc-windows-gnu" ;;
         *) echo "unknown" ;;
     esac
 }
@@ -42,95 +44,121 @@ fi
 # Create bin directory
 mkdir -p "$BIN_DIR"
 
-# Download function with conditional GET
-download_binary() {
+# Get latest release tag for a pattern
+get_latest_release() {
+    local pattern="$1"
+    gh release list --repo "$REPO" --limit 20 2>/dev/null | \
+        grep -i "$pattern" | head -1 | awk '{print $3}'
+}
+
+# Download raw binary
+download_raw_binary() {
     local name="$1"
-    local url="$2"
-    local dest="$3"
-    local archive="$4"
-    local archive_path="$BIN_DIR/$archive"
+    local tag="$2"
+    local asset="$3"
+    local dest="$4"
 
-    echo "Checking $name..."
+    echo "Checking $name ($tag)..."
 
-    # Use curl -z for conditional GET (only download if newer)
-    if curl -fsSL -z "$dest" -o "$archive_path" "$url"; then
-        # Check if we got a new file (archive exists and is newer than dest)
-        if [ -f "$archive_path" ] && [ "$archive_path" -nt "$dest" ]; then
-            echo "  Updating $name..."
-            # Extract
-            if [[ "$archive" == *.tar.gz ]]; then
-                tar -xzf "$archive_path" -C "$BIN_DIR"
-            elif [[ "$archive" == *.zip ]]; then
-                unzip -oq "$archive_path" -d "$BIN_DIR"
-            fi
-            rm -f "$archive_path"
-            chmod +x "$dest" 2>/dev/null || true
-            echo "  Downloaded $name"
-        else
-            rm -f "$archive_path" 2>/dev/null || true
-            echo "  $name is up to date"
-        fi
+    local url="https://github.com/$REPO/releases/download/$tag/$asset"
+
+    if curl -fsSL -o "$dest.tmp" "$url" 2>/dev/null; then
+        mv "$dest.tmp" "$dest"
+        chmod +x "$dest"
+        echo "  Downloaded $name"
     else
-        if [ ! -f "$dest" ]; then
+        rm -f "$dest.tmp"
+        if [ -f "$dest" ]; then
+            echo "  Using cached $name"
+        else
             return 1
         fi
-        echo "  Using cached $name"
     fi
 }
 
-# Map platform to archive names
+# Download and extract tar.gz
+download_archive() {
+    local name="$1"
+    local tag="$2"
+    local archive="$3"
+    local dest="$4"
+
+    echo "Checking $name ($tag)..."
+
+    local url="https://github.com/$REPO/releases/download/$tag/$archive"
+    local archive_path="$BIN_DIR/$archive"
+
+    if curl -fsSL -o "$archive_path" "$url" 2>/dev/null; then
+        if [[ "$archive" == *.tar.gz ]]; then
+            tar -xzf "$archive_path" -C "$BIN_DIR"
+        elif [[ "$archive" == *.zip ]]; then
+            unzip -oq "$archive_path" -d "$BIN_DIR"
+        fi
+        rm -f "$archive_path"
+        chmod +x "$dest" 2>/dev/null || true
+        echo "  Downloaded $name"
+    else
+        rm -f "$archive_path"
+        if [ -f "$dest" ]; then
+            echo "  Using cached $name"
+        else
+            return 1
+        fi
+    fi
+}
+
+# Map platform to asset names
 case "$PLATFORM" in
     aarch64-apple-darwin)
+        DEMO_ASSET="forge-demo-aarch64-apple-darwin"
         E2E_ARCHIVE="forge-e2e-aarch64-apple-darwin.tar.gz"
         ;;
     x86_64-apple-darwin)
+        DEMO_ASSET="forge-demo-x86_64-apple-darwin"
         E2E_ARCHIVE="forge-e2e-x86_64-apple-darwin.tar.gz"
         ;;
-    x86_64-unknown-linux-gnu)
+    x86_64-unknown-linux-musl)
+        DEMO_ASSET="forge-demo-x86_64-unknown-linux-musl"
         E2E_ARCHIVE="forge-e2e-x86_64-unknown-linux-gnu.tar.gz"
         ;;
-    aarch64-unknown-linux-gnu)
+    aarch64-unknown-linux-musl)
+        DEMO_ASSET="forge-demo-aarch64-unknown-linux-musl"
         E2E_ARCHIVE="forge-e2e-aarch64-unknown-linux-gnu.tar.gz"
         ;;
-    x86_64-pc-windows-msvc)
+    x86_64-pc-windows-gnu)
+        DEMO_ASSET="forge-demo-x86_64-pc-windows-gnu.exe"
         E2E_ARCHIVE="forge-e2e-x86_64-pc-windows-msvc.zip"
         ;;
 esac
 
-# Check for forge-demo binary
-if [ ! -f "$FORGE_DEMO" ]; then
-    echo "forge-demo binary not found at $FORGE_DEMO"
-    echo ""
-    echo "To build forge-demo from the main forge repo:"
-    echo "  cd /path/to/forge"
-    echo "  cargo build --release --bin forge-demo"
-    echo "  cp target/release/forge-demo $BIN_DIR/"
-    echo ""
-
-    # Try to build from parent directory if forge repo exists
-    FORGE_REPO="$SCRIPT_DIR/../forge"
-    if [ -f "$FORGE_REPO/Cargo.toml" ]; then
-        echo "Found forge repo at $FORGE_REPO, building..."
-        cargo build --release --bin forge-demo --manifest-path "$FORGE_REPO/Cargo.toml"
-        cp "$FORGE_REPO/target/release/forge-demo" "$FORGE_DEMO"
-        chmod +x "$FORGE_DEMO"
-        echo "Built forge-demo successfully"
-    else
-        echo "Error: forge repo not found. Please build forge-demo manually."
-        exit 1
-    fi
+# Find latest forge-demo release
+DEMO_TAG=$(get_latest_release "forge-demo")
+if [ -z "$DEMO_TAG" ]; then
+    echo "Error: No forge-demo release found"
+    exit 1
 fi
 
-# Download forge-e2e from royalbit/forge-demo releases
-E2E_URL="https://github.com/royalbit/forge-demo/releases/latest/download/$E2E_ARCHIVE"
-download_binary "forge-e2e" "$E2E_URL" "$FORGE_E2E" "$E2E_ARCHIVE" || {
+# Download forge-demo (raw binary)
+download_raw_binary "forge-demo" "$DEMO_TAG" "$DEMO_ASSET" "$FORGE_DEMO" || {
+    echo ""
+    echo "Error: Failed to download forge-demo"
+    echo "Release: $DEMO_TAG"
+    echo "Asset: $DEMO_ASSET"
+    exit 1
+}
+
+# Find latest forge-e2e release (v2.x.x tags)
+E2E_TAG=$(get_latest_release "^v2\.")
+if [ -z "$E2E_TAG" ]; then
+    E2E_TAG="v2.1.0"  # Fallback
+fi
+
+# Download forge-e2e (tar.gz archive)
+download_archive "forge-e2e" "$E2E_TAG" "$E2E_ARCHIVE" "$FORGE_E2E" || {
     echo ""
     echo "Error: Failed to download forge-e2e"
-    echo "No release found at: $E2E_URL"
-    echo ""
-    echo "To build and publish releases, run:"
-    echo "  make publish"
-    echo ""
+    echo "Release: $E2E_TAG"
+    echo "Archive: $E2E_ARCHIVE"
     exit 1
 }
 
