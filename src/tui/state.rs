@@ -51,7 +51,6 @@ pub enum FilterMode {
 
 impl FilterMode {
     /// Returns the display label for this filter mode.
-    #[allow(dead_code)]
     pub const fn label(self) -> &'static str {
         match self {
             Self::All => "All",

@@ -76,26 +76,21 @@ fn draw_results_list(frame: &mut Frame, area: Rect, app: &mut App) {
     } else {
         Style::default().fg(Color::DarkGray)
     };
+    let format_filter = |mode: FilterMode| {
+        if app.filter_mode == mode {
+            mode.label().to_uppercase()
+        } else {
+            mode.label().to_string()
+        }
+    };
     let filter_label = format!(
         " Results [{}:{} {}:{} {}:{}] ",
         FilterMode::All.shortcut(),
-        if app.filter_mode == FilterMode::All {
-            "ALL"
-        } else {
-            "All"
-        },
+        format_filter(FilterMode::All),
         FilterMode::Passed.shortcut(),
-        if app.filter_mode == FilterMode::Passed {
-            "PASSED"
-        } else {
-            "Passed"
-        },
+        format_filter(FilterMode::Passed),
         FilterMode::Failed.shortcut(),
-        if app.filter_mode == FilterMode::Failed {
-            "FAILED"
-        } else {
-            "Failed"
-        }
+        format_filter(FilterMode::Failed),
     );
     let items: Vec<ListItem> = app
         .filtered_results()
