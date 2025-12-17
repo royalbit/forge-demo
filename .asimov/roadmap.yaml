@@ -63,40 +63,58 @@ completed:
       - "Test Excel file creation with calamine/rust_xlsxwriter"
       - "65 unit tests (4 export tests ignored pending schema fix)"
 
+  - version: "1.6.0"
+    date: "2025-12-16"
+    summary: "Performance Benchmarks"
+    deliverables:
+      - "Tests/sec metric in stats panel"
+      - "Elapsed time display"
+      - "Performance tracking from start to finish"
+
+  - version: "1.7.0"
+    date: "2025-12-16"
+    summary: "Function Coverage Report"
+    deliverables:
+      - "Coverage summary: X/47 functions validated"
+      - "Category breakdown (math, text, date, etc.)"
+      - "Coverage panel in TUI"
+
+  - version: "1.8.0"
+    date: "2025-12-16"
+    summary: "Enterprise Teaser"
+    deliverables:
+      - "Display '+126 functions in Enterprise'"
+      - "Demo Mode indicator"
+      - "Upgrade panel in TUI"
+
+  - version: "1.9.0"
+    date: "2025-12-16"
+    summary: "Side-by-Side Comparison"
+    deliverables:
+      - "Toggle comparison mode with 'c' key"
+      - "Split view: Expected (Forge) | Actual (Gnumeric)"
+      - "Color-coded match highlighting"
+      - "75 unit tests"
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # CURRENT
 # ═══════════════════════════════════════════════════════════════════════════════
 
 current:
-  version: "1.6.0"
-  summary: "Regression Detection"
+  version: "2.0.0"
+  summary: "Next Major Release"
   priority: NORMAL
   status: pending
-  notes: "Save baseline results, detect regressions on new forge-demo releases"
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# NEXT
-# ═══════════════════════════════════════════════════════════════════════════════
-
-next:
-  - version: "1.7.0"
-    summary: "Test Coverage Expansion"
-    priority: NORMAL
-    status: pending
-    notes: "Add E2E tests for all 48 demo functions"
-    deliverables:
-      - "Audit current E2E test coverage"
-      - "Add missing function tests"
-      - "Ensure all 48 demo functions have E2E validation"
+  notes: "Planning phase for next major features"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # BACKLOG
 # ═══════════════════════════════════════════════════════════════════════════════
 
 backlog:
+  - "Regression Detection (save baseline, detect changes)"
+  - "Test Coverage Expansion (E2E for all 48 functions)"
   - "Re-run failed tests with r key"
   - "Expand/collapse by category (math.*, text.*, etc.)"
   - "Run tests in background thread (non-blocking UI)"
   - "GitHub Actions CI integration (run forge-e2e --all on PR)"
-  - "Performance benchmarks (rows/sec)"
-  - "Excel formula coverage report"
