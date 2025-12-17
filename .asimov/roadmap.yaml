@@ -6,6 +6,14 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 completed:
+  - version: "2.2.0"
+    date: "2025-12-17"
+    summary: "Three-Mode CLI and Batch Fix"
+    deliverables:
+      - "--all runs Normal + Perf + Batch modes with timing"
+      - "Fixed batch CSV parsing (112 passed, was 0)"
+      - "run-demo.sh downloads from GitHub releases"
+      - "Perf mode: 140x speedup (1232 tests/sec vs 9/sec)"
   - version: "2.1.0"
     date: "2025-12-16"
     summary: "Performance Testing Mode"
@@ -24,7 +32,15 @@ completed:
 # CURRENT
 # ═══════════════════════════════════════════════════════════════════════════════
 
-current: null
+current:
+  version: "2.3.0"
+  summary: "Investigate 4 Perf Mode Failures"
+  priority: LOW
+  status: backlog
+  notes: "4 tests fail in perf mode (forge calculate) - likely TODAY() and edge cases"
+  deliverables:
+    - "Investigate 4 failing perf tests"
+    - "Report bugs to forge if needed"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # BACKLOG
