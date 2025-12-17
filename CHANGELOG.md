@@ -42,7 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Function Coverage Report
 
-- Coverage summary: X/47 functions validated
+- Coverage summary: 48/48 functions validated
 - Category breakdown (math, text, date, etc.)
 - Coverage panel in TUI
 
