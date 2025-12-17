@@ -44,8 +44,23 @@ assumptions:
     formula: "=DAY(DATE(2024, 1, 31))"
     expected: 31
 
-  # DATEDIF (days between dates)
-  test_datedif_year:
+  # Date arithmetic (subtraction gives days)
+  test_date_diff_30_days:
+    value: null
+    formula: "=DATE(2024, 1, 31) - DATE(2024, 1, 1)"
+    expected: 30
+
+  test_date_diff_full_year:
     value: null
     formula: "=DATE(2024, 12, 31) - DATE(2024, 1, 1)"
     expected: 365
+
+  test_date_diff_leap_year:
+    value: null
+    formula: "=DATE(2024, 3, 1) - DATE(2024, 2, 1)"
+    expected: 29
+
+  test_date_diff_non_leap:
+    value: null
+    formula: "=DATE(2023, 3, 1) - DATE(2023, 2, 1)"
+    expected: 28

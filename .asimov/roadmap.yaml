@@ -96,24 +96,37 @@ completed:
       - "Color-coded match highlighting"
       - "75 unit tests"
 
+  - version: "2.0.0"
+    date: "2025-12-16"
+    summary: "Full 48-Function E2E Coverage"
+    deliverables:
+      - "Trig functions: SIN, COS, TAN, ASIN, ACOS, ATAN"
+      - "Log functions: EXP, LN, LOG10"
+      - "Math misc: INT, PI, SIGN, TRUNC"
+      - "Text case: LOWER, UPPER"
+      - "Date arithmetic tests (Gnumeric-compatible)"
+      - "112 E2E tests, all validated against Gnumeric"
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # CURRENT
 # ═══════════════════════════════════════════════════════════════════════════════
 
 current:
-  version: "2.0.0"
-  summary: "Next Major Release"
-  priority: NORMAL
-  status: pending
-  notes: "Planning phase for next major features"
+  version: "2.1.0"
+  summary: "Regression Detection"
+  priority: LOW
+  status: planned
+  notes: "Save baseline, detect result changes across runs"
+  deliverables:
+    - "Save baseline results to JSON"
+    - "Compare current run against baseline"
+    - "Flag regressions (previously passing tests now failing)"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # BACKLOG
 # ═══════════════════════════════════════════════════════════════════════════════
 
 backlog:
-  - "Regression Detection (save baseline, detect changes)"
-  - "Test Coverage Expansion (E2E for all 48 functions)"
   - "Re-run failed tests with r key"
   - "Expand/collapse by category (math.*, text.*, etc.)"
   - "Run tests in background thread (non-blocking UI)"

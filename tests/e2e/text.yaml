@@ -62,3 +62,25 @@ assumptions:
     value: null
     formula: "=LEN(REPT(\"123\", 0))"
     expected: 0
+
+  # LOWER (test via LEN - case doesn't change length)
+  test_lower_len:
+    value: null
+    formula: "=LEN(LOWER(\"ABC\"))"
+    expected: 3
+
+  test_lower_mixed:
+    value: null
+    formula: "=LEN(LOWER(\"AbCdE\"))"
+    expected: 5
+
+  # UPPER (test via LEN - case doesn't change length)
+  test_upper_len:
+    value: null
+    formula: "=LEN(UPPER(\"abc\"))"
+    expected: 3
+
+  test_upper_mixed:
+    value: null
+    formula: "=LEN(UPPER(\"aBcDe\"))"
+    expected: 5

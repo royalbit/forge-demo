@@ -87,3 +87,203 @@ assumptions:
     value: null
     formula: "=CEILING(2.3, 1)"
     expected: 3
+
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # TRIGONOMETRIC FUNCTIONS
+  # ═══════════════════════════════════════════════════════════════════════════════
+
+  # SIN (input in radians)
+  test_sin_zero:
+    value: null
+    formula: "=ROUND(SIN(0), 10)"
+    expected: 0
+
+  test_sin_pi_half:
+    value: null
+    formula: "=ROUND(SIN(PI()/2), 10)"
+    expected: 1
+
+  test_sin_pi:
+    value: null
+    formula: "=ROUND(SIN(PI()), 10)"
+    expected: 0
+
+  # COS (input in radians)
+  test_cos_zero:
+    value: null
+    formula: "=ROUND(COS(0), 10)"
+    expected: 1
+
+  test_cos_pi_half:
+    value: null
+    formula: "=ROUND(COS(PI()/2), 10)"
+    expected: 0
+
+  test_cos_pi:
+    value: null
+    formula: "=ROUND(COS(PI()), 10)"
+    expected: -1
+
+  # TAN (input in radians)
+  test_tan_zero:
+    value: null
+    formula: "=ROUND(TAN(0), 10)"
+    expected: 0
+
+  test_tan_pi_quarter:
+    value: null
+    formula: "=ROUND(TAN(PI()/4), 10)"
+    expected: 1
+
+  # ASIN (returns radians)
+  test_asin_zero:
+    value: null
+    formula: "=ROUND(ASIN(0), 10)"
+    expected: 0
+
+  test_asin_one:
+    value: null
+    formula: "=ROUND(ASIN(1) - PI()/2, 10)"
+    expected: 0
+
+  # ACOS (returns radians)
+  test_acos_one:
+    value: null
+    formula: "=ROUND(ACOS(1), 10)"
+    expected: 0
+
+  test_acos_zero:
+    value: null
+    formula: "=ROUND(ACOS(0) - PI()/2, 10)"
+    expected: 0
+
+  # ATAN (returns radians)
+  test_atan_zero:
+    value: null
+    formula: "=ROUND(ATAN(0), 10)"
+    expected: 0
+
+  test_atan_one:
+    value: null
+    formula: "=ROUND(ATAN(1) - PI()/4, 10)"
+    expected: 0
+
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # LOGARITHMIC & EXPONENTIAL FUNCTIONS
+  # ═══════════════════════════════════════════════════════════════════════════════
+
+  # EXP (e^x)
+  test_exp_zero:
+    value: null
+    formula: "=ROUND(EXP(0), 10)"
+    expected: 1
+
+  test_exp_one:
+    value: null
+    formula: "=ROUND(EXP(1), 5)"
+    expected: 2.71828
+
+  test_exp_two:
+    value: null
+    formula: "=ROUND(EXP(2), 5)"
+    expected: 7.38906
+
+  # LN (natural log)
+  test_ln_one:
+    value: null
+    formula: "=ROUND(LN(1), 10)"
+    expected: 0
+
+  test_ln_e:
+    value: null
+    formula: "=ROUND(LN(EXP(1)), 10)"
+    expected: 1
+
+  test_ln_e_squared:
+    value: null
+    formula: "=ROUND(LN(EXP(2)), 10)"
+    expected: 2
+
+  # LOG10 (base-10 log)
+  test_log10_one:
+    value: null
+    formula: "=ROUND(LOG10(1), 10)"
+    expected: 0
+
+  test_log10_ten:
+    value: null
+    formula: "=ROUND(LOG10(10), 10)"
+    expected: 1
+
+  test_log10_hundred:
+    value: null
+    formula: "=ROUND(LOG10(100), 10)"
+    expected: 2
+
+  test_log10_thousand:
+    value: null
+    formula: "=ROUND(LOG10(1000), 10)"
+    expected: 3
+
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # MISC MATH FUNCTIONS
+  # ═══════════════════════════════════════════════════════════════════════════════
+
+  # PI
+  test_pi_value:
+    value: null
+    formula: "=ROUND(PI(), 5)"
+    expected: 3.14159
+
+  test_pi_times_two:
+    value: null
+    formula: "=ROUND(PI()*2, 5)"
+    expected: 6.28319
+
+  # INT (truncate toward negative infinity)
+  test_int_positive:
+    value: null
+    formula: "=INT(5.7)"
+    expected: 5
+
+  test_int_negative:
+    value: null
+    formula: "=INT(-5.7)"
+    expected: -6
+
+  test_int_exact:
+    value: null
+    formula: "=INT(10)"
+    expected: 10
+
+  # TRUNC (truncate toward zero)
+  test_trunc_positive:
+    value: null
+    formula: "=TRUNC(5.7)"
+    expected: 5
+
+  test_trunc_negative:
+    value: null
+    formula: "=TRUNC(-5.7)"
+    expected: -5
+
+  test_trunc_with_decimals:
+    value: null
+    formula: "=TRUNC(5.789, 2)"
+    expected: 5.78
+
+  # SIGN
+  test_sign_positive:
+    value: null
+    formula: "=SIGN(42)"
+    expected: 1
+
+  test_sign_negative:
+    value: null
+    formula: "=SIGN(-42)"
+    expected: -1
+
+  test_sign_zero:
+    value: null
+    formula: "=SIGN(0)"
+    expected: 0
