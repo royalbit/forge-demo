@@ -6,12 +6,17 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 completed:
+  - version: "2.2.1"
+    date: "2025-12-17"
+    summary: "Batch CSV Parsing Fix Release"
+    deliverables:
+      - "Fixed batch CSV parsing to match results by test index"
+      - "112 batch tests now pass (was 0 in v2.2.0 release)"
   - version: "2.2.0"
     date: "2025-12-17"
-    summary: "Three-Mode CLI and Batch Fix"
+    summary: "Three-Mode CLI"
     deliverables:
       - "--all runs Normal + Perf + Batch modes with timing"
-      - "Fixed batch CSV parsing (112 passed, was 0)"
       - "run-demo.sh downloads from GitHub releases"
       - "Perf mode: 140x speedup (1232 tests/sec vs 9/sec)"
   - version: "2.1.0"
