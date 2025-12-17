@@ -108,33 +108,43 @@ download_archive() {
 }
 
 # Map platform to asset names
+# forge-demo uses: forge-demo-<version>-<os>-<arch>
+# forge-e2e uses: forge-e2e-<target>.tar.gz
 case "$PLATFORM" in
     aarch64-apple-darwin)
-        DEMO_ASSET="forge-demo-aarch64-apple-darwin"
+        DEMO_ASSET_PATTERN="forge-demo-.*-darwin-arm64"
         E2E_ARCHIVE="forge-e2e-aarch64-apple-darwin.tar.gz"
         ;;
     x86_64-apple-darwin)
-        DEMO_ASSET="forge-demo-x86_64-apple-darwin"
+        DEMO_ASSET_PATTERN="forge-demo-.*-darwin-x86_64"
         E2E_ARCHIVE="forge-e2e-x86_64-apple-darwin.tar.gz"
         ;;
     x86_64-unknown-linux-musl)
-        DEMO_ASSET="forge-demo-x86_64-unknown-linux-musl"
+        DEMO_ASSET_PATTERN="forge-demo-.*-linux-x86_64"
         E2E_ARCHIVE="forge-e2e-x86_64-unknown-linux-gnu.tar.gz"
         ;;
     aarch64-unknown-linux-musl)
-        DEMO_ASSET="forge-demo-aarch64-unknown-linux-musl"
+        DEMO_ASSET_PATTERN="forge-demo-.*-linux-arm64"
         E2E_ARCHIVE="forge-e2e-aarch64-unknown-linux-gnu.tar.gz"
         ;;
     x86_64-pc-windows-gnu)
-        DEMO_ASSET="forge-demo-x86_64-pc-windows-gnu.exe"
+        DEMO_ASSET_PATTERN="forge-demo-.*-windows-x86_64.exe"
         E2E_ARCHIVE="forge-e2e-x86_64-pc-windows-msvc.zip"
         ;;
 esac
 
-# Find latest forge-demo release
-DEMO_TAG=$(get_latest_release "forge-demo")
+# Find latest forge-demo release (v9.x.x tag)
+DEMO_TAG=$(gh release list --repo "$REPO" --limit 20 --json tagName --jq '.[].tagName' 2>/dev/null | grep -E "^v9\.[0-9]+\.[0-9]+$" | head -1)
 if [ -z "$DEMO_TAG" ]; then
     echo "Error: No forge-demo release found"
+    exit 1
+fi
+
+# Find actual asset name matching pattern
+DEMO_ASSET=$(gh release view "$DEMO_TAG" --repo "$REPO" --json assets --jq ".assets[].name" 2>/dev/null | grep -E "$DEMO_ASSET_PATTERN" | head -1)
+if [ -z "$DEMO_ASSET" ]; then
+    echo "Error: No forge-demo asset found matching $DEMO_ASSET_PATTERN"
+    echo "Release: $DEMO_TAG"
     exit 1
 fi
 
