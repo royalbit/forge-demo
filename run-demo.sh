@@ -44,11 +44,11 @@ fi
 # Create bin directory
 mkdir -p "$BIN_DIR"
 
-# Get latest release tag for a pattern
+# Get latest release tag for a pattern (matches against tag column)
 get_latest_release() {
     local pattern="$1"
-    gh release list --repo "$REPO" --limit 20 2>/dev/null | \
-        grep -i "$pattern" | head -1 | awk '{print $3}'
+    gh release list --repo "$REPO" --limit 20 --json tagName --jq '.[].tagName' 2>/dev/null | \
+        grep -E "$pattern" | head -1
 }
 
 # Download raw binary
