@@ -4,6 +4,47 @@ All notable changes to forge-demo will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.0] - 2025-12-17
+
+### Edge Case Discovery
+
+- 8 parallel agents created comprehensive edge case tests
+- 120+ new tests across 8 categories (type coercion, arithmetic, comparison, string ops, error handling, numeric edge, date edge, logical/aggregation)
+- Found 7 bugs in forge (BUG-003 through BUG-009), all fixed in forge v9.4.0-v9.6.1
+- Found 4 additional bugs (BUG-010 through BUG-013), pending fixes
+- 233 total E2E tests (227 passing, 5 failing, 1 skipped)
+
+---
+
+## [2.2.1] - 2025-12-17
+
+### Batch CSV Parsing Fix
+
+- Fixed batch CSV parsing to match results by test index
+- 112 batch tests now pass (was 0 in v2.2.0 release)
+
+---
+
+## [2.2.0] - 2025-12-17
+
+### Three-Mode CLI
+
+- `--all` flag runs Normal + Perf + Batch modes with timing
+- `run-demo.sh` downloads binaries from GitHub releases
+- Perf mode: 140x speedup (1232 tests/sec vs 9/sec)
+
+---
+
+## [2.1.0] - 2025-12-16
+
+### Performance Testing Mode
+
+- `p` key: Perf mode - parallel forge calculate, skip Gnumeric
+- `b` key: Batch mode - run all formulas in single XLSX
+- Parallel execution with rayon for concurrent tests
+
+---
+
 ## [2.0.0] - 2025-12-16
 
 ### Full 48-Function E2E Coverage
