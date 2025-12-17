@@ -1,4 +1,11 @@
-//! Test runner - executes E2E validation tests
+//! Test runner - executes E2E validation tests.
+//!
+//! Orchestrates the test execution pipeline:
+//! 1. Load test specs from YAML files
+//! 2. For each test, generate a minimal YAML with the formula
+//! 3. Run forge-demo export to create XLSX
+//! 4. Use spreadsheet engine to recalculate and export to CSV
+//! 5. Compare results against expected values
 
 use std::fs;
 use std::io::{BufRead, BufReader};
@@ -8,17 +15,29 @@ use std::process::Command;
 use crate::engine::SpreadsheetEngine;
 use crate::types::{extract_test_cases, TestCase, TestResult, TestSpec};
 
-/// Test runner for E2E validation
+// ─────────────────────────────────────────────────────────────────────────────
+// Test Runner
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Test runner for E2E validation.
+///
+/// Manages test case loading and execution against the forge-demo binary.
 pub struct TestRunner {
+    /// Path to the forge-demo binary.
     forge_binary: PathBuf,
+    /// Spreadsheet engine for formula recalculation.
     engine: SpreadsheetEngine,
+    /// Directory containing test spec files.
     #[allow(dead_code)]
     tests_dir: PathBuf,
+    /// All loaded test cases.
     test_cases: Vec<TestCase>,
 }
 
 impl TestRunner {
-    /// Create a new test runner
+    /// Creates a new test runner.
+    ///
+    /// Loads all test cases from YAML files in the tests directory.
     pub fn new(
         forge_binary: PathBuf,
         engine: SpreadsheetEngine,
@@ -34,19 +53,19 @@ impl TestRunner {
         })
     }
 
-    /// Load all test cases from the tests directory
+    /// Loads all test cases from the tests directory.
     fn load_test_cases(tests_dir: &Path) -> anyhow::Result<Vec<TestCase>> {
         let mut all_cases = Vec::new();
 
         if !tests_dir.exists() {
-            anyhow::bail!("Tests directory does not exist: {:?}", tests_dir);
+            anyhow::bail!("Tests directory does not exist: {}", tests_dir.display());
         }
 
         for entry in fs::read_dir(tests_dir)? {
             let entry = entry?;
             let path = entry.path();
 
-            if path.extension().map(|e| e == "yaml").unwrap_or(false) {
+            if path.extension().is_some_and(|e| e == "yaml") {
                 let content = fs::read_to_string(&path)?;
                 match serde_yaml_ng::from_str::<TestSpec>(&content) {
                     Ok(spec) => {
@@ -54,7 +73,7 @@ impl TestRunner {
                         all_cases.extend(cases);
                     }
                     Err(e) => {
-                        eprintln!("Warning: Failed to parse {:?}: {}", path, e);
+                        eprintln!("Warning: Failed to parse {}: {e}", path.display());
                     }
                 }
             }
@@ -63,26 +82,25 @@ impl TestRunner {
         Ok(all_cases)
     }
 
-    /// Get total number of test cases
-    pub fn total_tests(&self) -> usize {
+    /// Returns the total number of test cases.
+    pub const fn total_tests(&self) -> usize {
         self.test_cases.len()
     }
 
-    /// Get all test cases
+    /// Returns all test cases.
     pub fn test_cases(&self) -> &[TestCase] {
         &self.test_cases
     }
 
-    /// Run all tests and return results
-    pub fn run_all(&mut self) -> Vec<TestResult> {
-        self.test_cases
-            .clone()
-            .iter()
-            .map(|tc| self.run_test(tc))
-            .collect()
+    /// Runs all tests and returns results.
+    pub fn run_all(&self) -> Vec<TestResult> {
+        self.test_cases.iter().map(|tc| self.run_test(tc)).collect()
     }
 
-    /// Run a single test case
+    /// Runs a single test case.
+    ///
+    /// Creates a temporary YAML file with the formula, runs forge-demo export,
+    /// converts to CSV using the spreadsheet engine, and compares results.
     pub fn run_test(&self, test_case: &TestCase) -> TestResult {
         // Create a minimal YAML with just this test
         // Escape double quotes in formula for YAML compatibility
@@ -92,9 +110,8 @@ impl TestRunner {
 assumptions:
   test_result:
     value: null
-    formula: "{}"
-"#,
-            escaped_formula
+    formula: "{escaped_formula}"
+"#
         );
 
         let temp_dir = match tempfile::tempdir() {
@@ -105,7 +122,7 @@ assumptions:
                     formula: test_case.formula.clone(),
                     expected: test_case.expected,
                     actual: None,
-                    error: Some(format!("Failed to create temp dir: {}", e)),
+                    error: Some(format!("Failed to create temp dir: {e}")),
                 };
             }
         };
@@ -120,18 +137,17 @@ assumptions:
                 formula: test_case.formula.clone(),
                 expected: test_case.expected,
                 actual: None,
-                error: Some(format!("Failed to write YAML: {}", e)),
+                error: Some(format!("Failed to write YAML: {e}")),
             };
         }
 
         // Run forge-demo export
-        let output = Command::new(&self.forge_binary)
+        let output = match Command::new(&self.forge_binary)
             .arg("export")
             .arg(&yaml_path)
             .arg(&xlsx_path)
-            .output();
-
-        let output = match output {
+            .output()
+        {
             Ok(o) => o,
             Err(e) => {
                 return TestResult::Fail {
@@ -139,7 +155,7 @@ assumptions:
                     formula: test_case.formula.clone(),
                     expected: test_case.expected,
                     actual: None,
-                    error: Some(format!("Failed to run forge-demo: {}", e)),
+                    error: Some(format!("Failed to run forge-demo: {e}")),
                 };
             }
         };
@@ -166,13 +182,13 @@ assumptions:
                     formula: test_case.formula.clone(),
                     expected: test_case.expected,
                     actual: None,
-                    error: Some(format!("CSV conversion failed: {}", e)),
+                    error: Some(format!("CSV conversion failed: {e}")),
                 };
             }
         };
 
         // Parse CSV and find result
-        match self.find_result_in_csv(&csv_path, test_case.expected) {
+        match Self::find_result_in_csv(&csv_path, test_case.expected) {
             Ok(actual) => {
                 if (actual - test_case.expected).abs() < f64::EPSILON {
                     TestResult::Pass {
@@ -201,13 +217,16 @@ assumptions:
         }
     }
 
-    /// Find the result value in CSV output
-    fn find_result_in_csv(&self, csv_path: &Path, expected: f64) -> Result<f64, String> {
-        let file = fs::File::open(csv_path).map_err(|e| format!("Failed to open CSV: {}", e))?;
+    /// Finds the result value in CSV output.
+    ///
+    /// Looks for labeled results ("result" or `test_result`) or matches
+    /// numeric values against the expected value.
+    fn find_result_in_csv(csv_path: &Path, expected: f64) -> Result<f64, String> {
+        let file = fs::File::open(csv_path).map_err(|e| format!("Failed to open CSV: {e}"))?;
         let reader = BufReader::new(file);
 
         for line in reader.lines() {
-            let line = line.map_err(|e| format!("Failed to read line: {}", e))?;
+            let line = line.map_err(|e| format!("Failed to read line: {e}"))?;
             // Simple CSV parsing
             let cells: Vec<&str> = line
                 .split(',')
@@ -236,13 +255,53 @@ assumptions:
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Tests
+// ─────────────────────────────────────────────────────────────────────────────
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_load_empty_dir() {
+    fn load_empty_dir_returns_empty_cases() {
         let temp_dir = tempfile::tempdir().unwrap();
+        let result = TestRunner::load_test_cases(temp_dir.path());
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
+    }
+
+    #[test]
+    fn load_nonexistent_dir_returns_error() {
+        let result = TestRunner::load_test_cases(Path::new("/nonexistent/path"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn load_dir_with_yaml_files() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let yaml_content = r#"
+_forge_version: "1.0.0"
+assumptions:
+  test_one:
+    value: null
+    formula: "=1+1"
+    expected: 2
+"#;
+        fs::write(temp_dir.path().join("test.yaml"), yaml_content).unwrap();
+
+        let result = TestRunner::load_test_cases(temp_dir.path());
+        assert!(result.is_ok());
+        let cases = result.unwrap();
+        assert_eq!(cases.len(), 1);
+    }
+
+    #[test]
+    fn load_ignores_non_yaml_files() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        fs::write(temp_dir.path().join("readme.txt"), "not yaml").unwrap();
+        fs::write(temp_dir.path().join("config.json"), "{}").unwrap();
+
         let result = TestRunner::load_test_cases(temp_dir.path());
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());

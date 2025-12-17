@@ -1,4 +1,4 @@
-//! forge-e2e: E2E validation tool for forge-demo
+//! forge-e2e: E2E validation tool for forge-demo.
 //!
 //! Validates forge-demo calculations against Gnumeric.
 //! Default: TUI mode | --all: verbose headless mode
@@ -8,59 +8,70 @@ mod runner;
 mod tui;
 mod types;
 
-use clap::Parser;
-use colored::Colorize;
 use std::path::PathBuf;
 use std::process::ExitCode;
+
+use clap::Parser;
+use colored::Colorize;
 
 use crate::engine::SpreadsheetEngine;
 use crate::runner::TestRunner;
 use crate::types::TestResult;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CLI
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// CLI arguments for forge-e2e.
 #[derive(Parser)]
 #[command(name = "forge-e2e")]
 #[command(about = "E2E validation tool for forge-demo")]
 #[command(version)]
 struct Cli {
-    /// Run all tests in verbose headless mode (colored YAML output)
+    /// Run all tests in verbose headless mode (colored YAML output).
     #[arg(long)]
     all: bool,
 
-    /// Path to test specs directory
+    /// Path to test specs directory.
     #[arg(short, long, default_value = "tests/e2e")]
     tests: PathBuf,
 
-    /// Path to forge-demo binary
+    /// Path to forge-demo binary.
     #[arg(short, long, default_value = "bin/forge-demo")]
     binary: PathBuf,
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main
+// ─────────────────────────────────────────────────────────────────────────────
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
 
     // Check for spreadsheet engine
-    let engine = match SpreadsheetEngine::detect() {
-        Some(e) => {
-            if cli.all {
-                println!("{} {} ({})", "Engine:".cyan().bold(), e.name(), e.version());
-            }
-            e
-        }
-        None => {
-            eprintln!(
-                "{} Gnumeric not found. Install with: brew install gnumeric (macOS) or apt install gnumeric (Linux)",
-                "ERROR:".red().bold()
-            );
-            return ExitCode::FAILURE;
-        }
+    let Some(engine) = SpreadsheetEngine::detect() else {
+        eprintln!(
+            "{} Gnumeric not found. Install with: brew install gnumeric (macOS) or apt install gnumeric (Linux)",
+            "ERROR:".red().bold()
+        );
+        return ExitCode::FAILURE;
     };
+
+    if cli.all {
+        println!(
+            "{} {} ({})",
+            "Engine:".cyan().bold(),
+            SpreadsheetEngine::name(),
+            engine.version()
+        );
+    }
 
     // Check for forge-demo binary
     if !cli.binary.exists() {
         eprintln!(
-            "{} forge-demo binary not found at {:?}",
+            "{} forge-demo binary not found at {}",
             "ERROR:".red().bold(),
-            cli.binary
+            cli.binary.display()
         );
         eprintln!("  Use ./run-demo.sh which handles downloads automatically");
         return ExitCode::FAILURE;
@@ -71,9 +82,8 @@ fn main() -> ExitCode {
         Ok(r) => r,
         Err(e) => {
             eprintln!(
-                "{} Failed to initialize test runner: {}",
+                "{} Failed to initialize test runner: {e}",
                 "ERROR:".red().bold(),
-                e
             );
             return ExitCode::FAILURE;
         }
@@ -81,14 +91,18 @@ fn main() -> ExitCode {
 
     // Run tests
     if cli.all {
-        run_all_mode(runner)
+        run_all_mode(&runner)
     } else {
-        run_tui_mode(runner)
+        run_tui_mode(&runner)
     }
 }
 
-/// Run in verbose headless mode with colored output
-fn run_all_mode(mut runner: TestRunner) -> ExitCode {
+// ─────────────────────────────────────────────────────────────────────────────
+// Run Modes
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Runs in verbose headless mode with colored output.
+fn run_all_mode(runner: &TestRunner) -> ExitCode {
     println!();
     println!("{}", "═".repeat(70).cyan());
     println!("{}", "  forge-e2e: E2E Validation Suite".cyan().bold());
@@ -159,8 +173,8 @@ fn run_all_mode(mut runner: TestRunner) -> ExitCode {
     }
 }
 
-/// Run in TUI mode
-fn run_tui_mode(runner: TestRunner) -> ExitCode {
+/// Runs in TUI mode.
+fn run_tui_mode(runner: &TestRunner) -> ExitCode {
     match tui::run(runner) {
         Ok(success) => {
             if success {
@@ -170,7 +184,7 @@ fn run_tui_mode(runner: TestRunner) -> ExitCode {
             }
         }
         Err(e) => {
-            eprintln!("{} TUI error: {}", "ERROR:".red().bold(), e);
+            eprintln!("{} TUI error: {e}", "ERROR:".red().bold());
             ExitCode::FAILURE
         }
     }

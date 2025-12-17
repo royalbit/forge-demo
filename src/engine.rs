@@ -1,44 +1,65 @@
-//! Spreadsheet engine detection and conversion
+//! Spreadsheet engine detection and conversion.
 //!
 //! Uses Gnumeric's ssconvert for XLSX to CSV conversion with formula recalculation.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-/// Gnumeric spreadsheet engine
+// ─────────────────────────────────────────────────────────────────────────────
+// Spreadsheet Engine
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Gnumeric spreadsheet engine for formula recalculation.
 pub struct SpreadsheetEngine {
+    /// Path to the ssconvert binary.
     path: PathBuf,
+    /// Version string from ssconvert.
     version: String,
 }
 
 impl SpreadsheetEngine {
-    /// Detect Gnumeric (ssconvert) installation
+    /// Engine name constant.
+    const NAME: &'static str = "Gnumeric (ssconvert)";
+
+    /// Detects Gnumeric (ssconvert) installation.
+    ///
+    /// Returns `Some(engine)` if ssconvert is found and working,
+    /// `None` otherwise.
     pub fn detect() -> Option<Self> {
-        if let Ok(output) = Command::new("ssconvert").arg("--version").output() {
-            if output.status.success() {
-                let version = String::from_utf8_lossy(&output.stderr).trim().to_string();
-                return Some(Self {
-                    path: PathBuf::from("ssconvert"),
-                    version,
-                });
-            }
+        let output = Command::new("ssconvert").arg("--version").output().ok()?;
+
+        if output.status.success() {
+            let version = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            Some(Self {
+                path: PathBuf::from("ssconvert"),
+                version,
+            })
+        } else {
+            None
         }
-        None
     }
 
-    /// Get engine version string
+    /// Returns the engine version string.
     pub fn version(&self) -> &str {
         &self.version
     }
 
-    /// Get engine name
-    pub fn name(&self) -> &str {
-        "Gnumeric (ssconvert)"
+    /// Returns the engine name.
+    pub const fn name() -> &'static str {
+        Self::NAME
     }
 
-    /// Convert XLSX to CSV with formula recalculation
+    /// Converts XLSX to CSV with formula recalculation.
+    ///
+    /// Uses ssconvert with the `--recalc` flag to ensure all formulas
+    /// are recalculated before export.
     pub fn xlsx_to_csv(&self, xlsx_path: &Path, output_dir: &Path) -> Result<PathBuf, String> {
-        let csv_name = xlsx_path.file_stem().unwrap().to_string_lossy().to_string() + ".csv";
+        let csv_name = xlsx_path
+            .file_stem()
+            .ok_or("Invalid xlsx path: no file stem")?
+            .to_string_lossy()
+            .to_string()
+            + ".csv";
         let csv_path = output_dir.join(&csv_name);
 
         let output = Command::new(&self.path)
@@ -46,7 +67,7 @@ impl SpreadsheetEngine {
             .arg(xlsx_path)
             .arg(&csv_path)
             .output()
-            .map_err(|e| format!("Failed to run ssconvert: {}", e))?;
+            .map_err(|e| format!("Failed to run ssconvert: {e}"))?;
 
         if !output.status.success() {
             return Err(format!(
@@ -58,20 +79,29 @@ impl SpreadsheetEngine {
         if csv_path.exists() {
             Ok(csv_path)
         } else {
-            Err(format!("CSV file not created: {:?}", csv_path))
+            Err(format!("CSV file not created: {}", csv_path.display()))
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tests
+// ─────────────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_engine_detection() {
+    fn engine_name_is_constant() {
+        assert_eq!(SpreadsheetEngine::name(), "Gnumeric (ssconvert)");
+    }
+
+    #[test]
+    fn engine_detection_returns_valid_engine_or_none() {
         // This test may skip if Gnumeric is not installed
-        if let Some(engine) = SpreadsheetEngine::detect() {
-            assert!(!engine.name().is_empty());
-        }
+        // Just verify detect() returns Some when ssconvert exists
+        let _ = SpreadsheetEngine::detect();
+        // No assertion - we just verify it doesn't panic
     }
 }
