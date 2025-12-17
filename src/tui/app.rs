@@ -15,8 +15,8 @@ const STATUS_MESSAGE_DURATION: Duration = Duration::from_secs(3);
 
 /// Demo mode function count (v1.0.0 schema).
 pub const DEMO_FUNCTION_COUNT: usize = 48;
-/// Enterprise function count (full forge).
-pub const ENTERPRISE_FUNCTION_COUNT: usize = 173;
+/// Full build function count (R&D, not for sale).
+pub const FULL_BUILD_FUNCTION_COUNT: usize = 173;
 
 /// Main application state for the TUI.
 pub struct App {

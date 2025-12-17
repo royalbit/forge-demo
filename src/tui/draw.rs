@@ -1,6 +1,6 @@
 //! TUI drawing functions - renders all UI components.
 
-use super::app::{App, DEMO_FUNCTION_COUNT, ENTERPRISE_FUNCTION_COUNT};
+use super::app::{App, DEMO_FUNCTION_COUNT, FULL_BUILD_FUNCTION_COUNT};
 use super::state::{category_color, ActivePanel, FilterMode, InputMode};
 use crate::types::TestResult;
 use ratatui::{
@@ -264,7 +264,7 @@ fn draw_coverage_bar(frame: &mut Frame, area: Rect, app: &App) {
         )
         .alignment(Alignment::Left);
     frame.render_widget(coverage_widget, chunks[0]);
-    let locked_count = ENTERPRISE_FUNCTION_COUNT - DEMO_FUNCTION_COUNT;
+    let locked_count = FULL_BUILD_FUNCTION_COUNT - DEMO_FUNCTION_COUNT;
     let teaser_line1 = Line::from(vec![
         Span::styled("Demo Mode", Style::default().fg(Color::Yellow)),
         Span::raw(" | "),
@@ -274,7 +274,7 @@ fn draw_coverage_bar(frame: &mut Frame, area: Rect, app: &App) {
         ),
         Span::raw(" in "),
         Span::styled(
-            "Enterprise",
+            "Full Build",
             Style::default()
                 .fg(Color::Cyan)
                 .add_modifier(Modifier::BOLD),
@@ -283,7 +283,7 @@ fn draw_coverage_bar(frame: &mut Frame, area: Rect, app: &App) {
     let teaser_widget = Paragraph::new(vec![teaser_line1])
         .block(
             Block::default()
-                .title(" Upgrade ")
+                .title(" R&D Preview ")
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(Color::Yellow)),
         )
@@ -353,13 +353,16 @@ fn draw_comparison_view(frame: &mut Frame, area: Rect, app: &App) {
             ]))
         })
         .collect();
-    let gnumeric_list = List::new(gnumeric_items).block(
-        Block::default()
-            .title(" Actual (Gnumeric) ")
-            .borders(Borders::ALL)
-            .border_style(border_style),
-    );
-    frame.render_widget(gnumeric_list, chunks[1]);
+    let gnumeric_list = List::new(gnumeric_items)
+        .block(
+            Block::default()
+                .title(" Actual (Gnumeric) ")
+                .borders(Borders::ALL)
+                .border_style(border_style),
+        )
+        .highlight_style(Style::default().add_modifier(Modifier::REVERSED));
+    let mut gnumeric_state = app.list_state.clone();
+    frame.render_stateful_widget(gnumeric_list, chunks[1], &mut gnumeric_state);
 }
 
 fn draw_footer(frame: &mut Frame, area: Rect, app: &App) {

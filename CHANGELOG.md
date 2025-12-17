@@ -30,11 +30,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [1.8.0] - 2025-12-16
 
-### Enterprise Teaser
+### R&D Preview Teaser
 
-- Display '+125 functions in Enterprise'
+- Display '+125 functions in Full Build'
 - Demo Mode indicator
-- Upgrade panel in TUI
+- R&D Preview panel in TUI
 
 ---
 
