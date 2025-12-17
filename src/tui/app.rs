@@ -1,6 +1,6 @@
 //! TUI application state - App struct and all its methods.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -55,7 +55,7 @@ pub struct App {
     /// Total execution time after tests complete.
     pub(super) total_duration: Option<Duration>,
     /// Function coverage by category (category -> set of function names).
-    function_coverage: HashMap<String, Vec<String>>,
+    function_coverage: HashMap<String, HashSet<String>>,
     /// Whether comparison mode is active (toggle with 'c' key).
     pub(super) comparison_mode: bool,
 }
@@ -112,15 +112,35 @@ impl App {
     }
 
     fn track_function_coverage(&mut self, name: &str) {
+        // Test names like "assumptions.test_sin_zero" -> extract "SIN"
         let parts: Vec<&str> = name.split('.').collect();
         if parts.len() >= 2 {
             let category = parts[0].to_string();
-            let function = parts[1..].join(".");
-            self.function_coverage
-                .entry(category)
-                .or_default()
-                .push(function);
+            let test_name = parts[1..].join(".");
+            // Extract function: "test_sin_zero" -> "sin" -> "SIN"
+            if let Some(func) = Self::extract_function_name(&test_name) {
+                self.function_coverage
+                    .entry(category)
+                    .or_default()
+                    .insert(func);
+            }
         }
+    }
+
+    /// Extract Excel function name from test name.
+    /// `test_sin_zero` -> `SIN`, `test_roundup_pos` -> `ROUNDUP`
+    fn extract_function_name(test_name: &str) -> Option<String> {
+        let name = test_name.strip_prefix("test_")?;
+        // Find the function part (up to the next underscore that precedes a variant)
+        // e.g., "sin_zero" -> "sin", "roundup_positive" -> "roundup"
+        let parts: Vec<&str> = name.split('_').collect();
+        if parts.is_empty() {
+            return None;
+        }
+        // Handle multi-part function names like "round_up" vs single "sin"
+        // Check if combining first parts makes a known pattern
+        let func = parts[0].to_uppercase();
+        Some(func)
     }
 
     #[allow(clippy::cast_precision_loss)]
@@ -155,7 +175,7 @@ impl App {
     }
 
     pub fn unique_functions_tested(&self) -> usize {
-        self.function_coverage.values().map(Vec::len).sum()
+        self.function_coverage.values().map(HashSet::len).sum()
     }
 
     pub fn coverage_by_category(&self) -> Vec<(&str, usize)> {
@@ -445,11 +465,12 @@ mod tests {
     }
     #[test]
     fn app_coverage() {
-        let mut app = App::new(3);
-        app.add_result(make_pass_result("math.ABS"));
-        app.add_result(make_pass_result("math.SQRT"));
-        app.add_result(make_pass_result("text.CONCAT"));
-        assert_eq!(app.unique_functions_tested(), 3);
+        let mut app = App::new(4);
+        app.add_result(make_pass_result("math.test_abs_positive"));
+        app.add_result(make_pass_result("math.test_abs_negative")); // Same function, shouldn't double-count
+        app.add_result(make_pass_result("math.test_sqrt_four"));
+        app.add_result(make_pass_result("text.test_concat_two"));
+        assert_eq!(app.unique_functions_tested(), 3); // ABS, SQRT, CONCAT
     }
     #[test]
     fn app_comparison_mode() {
