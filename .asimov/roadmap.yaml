@@ -8,10 +8,10 @@
 completed:
   - version: "2.0.0"
     date: "2025-12-16"
-    summary: "Full 48-Function E2E Coverage"
+    summary: "Full 47-Function E2E Coverage"
     deliverables:
       - "112 E2E tests validated against Gnumeric"
-      - "All 48 demo functions covered"
+      - "All 47 testable functions covered (DATEDIF excluded - Gnumeric incompatible)"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CURRENT

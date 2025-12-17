@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [2.0.0] - 2025-12-16
 
-### Full 48-Function E2E Coverage
+### Full 47-Function E2E Coverage
 
 - Trig functions: SIN, COS, TAN, ASIN, ACOS, ATAN
 - Log functions: EXP, LN, LOG10
@@ -42,7 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Function Coverage Report
 
-- Coverage summary: 48/48 functions validated
+- Coverage summary: 47/47 functions validated
 - Category breakdown (math, text, date, etc.)
 - Coverage panel in TUI
 
@@ -121,7 +121,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Rust CLI with ratatui TUI
 - Validates against Gnumeric (ssconvert --recalc)
-- 48 demo functions, v1.0.0 schema (scalar only)
+- 47 demo functions, v1.0.0 schema (scalar only, DATEDIF excluded - Gnumeric incompatible)
 - Exact match comparison (no tolerance - financial tool)
 - Cross-platform binaries via GitHub Releases
 
