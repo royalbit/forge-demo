@@ -19,6 +19,7 @@ pub const DEMO_FUNCTION_COUNT: usize = 48;
 pub const FULL_BUILD_FUNCTION_COUNT: usize = 173;
 
 /// Main application state for the TUI.
+#[allow(clippy::struct_excessive_bools)]
 pub struct App {
     /// All test results collected so far.
     pub(super) results: Vec<TestResult>,
@@ -58,6 +59,10 @@ pub struct App {
     function_coverage: HashMap<String, HashSet<String>>,
     /// Whether comparison mode is active (toggle with 'c' key).
     pub(super) comparison_mode: bool,
+    /// Whether perf mode is active (skip Gnumeric validation).
+    pub(super) perf_mode: bool,
+    /// Whether batch mode is active (single XLSX for all tests).
+    pub(super) batch_mode: bool,
 }
 
 impl App {
@@ -83,7 +88,27 @@ impl App {
             total_duration: None,
             function_coverage: HashMap::new(),
             comparison_mode: false,
+            perf_mode: false,
+            batch_mode: false,
         }
+    }
+
+    /// Resets the app for a new test run.
+    pub fn reset(&mut self, perf_mode: bool, batch_mode: bool) {
+        self.results.clear();
+        self.current_test = 0;
+        self.running = true;
+        self.done = false;
+        self.passed = 0;
+        self.failed = 0;
+        self.skipped = 0;
+        self.filtered_indices.clear();
+        self.list_state.select(None);
+        self.start_time = Some(Instant::now());
+        self.total_duration = None;
+        self.function_coverage.clear();
+        self.perf_mode = perf_mode;
+        self.batch_mode = batch_mode;
     }
 
     /// Adds a test result and updates statistics.

@@ -386,10 +386,19 @@ fn draw_footer(frame: &mut Frame, area: Rect, app: &App) {
             Span::raw(" │ Enter:confirm │ Esc:cancel"),
         ]),
         InputMode::Normal => {
-            let hints = if app.done {
-                "↑/↓:nav │ Tab:panel │ 1/2/3:filter │ /:search │ c:compare │ s:save │ q:exit"
+            let mode_indicator = if app.perf_mode {
+                " [PERF]"
+            } else if app.batch_mode {
+                " [BATCH]"
             } else {
-                "↑/↓:nav │ Tab:panel │ 1/2/3:filter │ /:search │ c:compare │ q:quit"
+                ""
+            };
+            let hints = if app.done {
+                format!(
+                    "↑/↓:nav │ 1/2/3:filter │ c:compare │ p:perf │ b:batch │ s:save │ q:exit{mode_indicator}"
+                )
+            } else {
+                "↑/↓:nav │ 1/2/3:filter │ c:compare │ q:quit".to_string()
             };
             Line::from(hints)
         }

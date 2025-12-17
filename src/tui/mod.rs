@@ -5,6 +5,7 @@
 //! - v1.7.0: Function coverage report (48/48 functions validated)
 //! - v1.8.0: R&D preview teaser (shows locked functions count)
 //! - v1.9.0: Side-by-side comparison mode (toggle with `c` key)
+//! - v2.1.0: Performance mode (p key - skip Gnumeric validation)
 
 mod app;
 mod draw;
@@ -37,12 +38,24 @@ pub fn run(runner: &TestRunner) -> anyhow::Result<bool> {
     result
 }
 
-fn run_app(
+fn run_tests(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     runner: &TestRunner,
+    app: &mut App,
+    perf_mode: bool,
+    batch_mode: bool,
 ) -> anyhow::Result<bool> {
-    let total = runner.total_tests();
-    let mut app = App::new(total);
+    if batch_mode {
+        // Batch mode: single XLSX for all tests
+        terminal.draw(|frame| draw_ui(frame, app))?;
+        let results = runner.run_batch();
+        for result in results {
+            app.add_result(result);
+        }
+        terminal.draw(|frame| draw_ui(frame, app))?;
+        app.mark_done();
+        return Ok(true);
+    }
 
     // First, add all skip results
     for skip_case in runner.skip_cases() {
@@ -50,7 +63,7 @@ fn run_app(
             name: skip_case.name.clone(),
             reason: skip_case.reason.clone(),
         });
-        terminal.draw(|frame| draw_ui(frame, &mut app))?;
+        terminal.draw(|frame| draw_ui(frame, app))?;
     }
 
     // Then run actual tests
@@ -63,13 +76,31 @@ fn run_app(
                 }
             }
         }
-        terminal.draw(|frame| draw_ui(frame, &mut app))?;
-        let result = runner.run_test(&test_case);
+        terminal.draw(|frame| draw_ui(frame, app))?;
+        let result = if perf_mode {
+            runner.run_perf_test(&test_case)
+        } else {
+            runner.run_test(&test_case)
+        };
         app.add_result(result);
-        terminal.draw(|frame| draw_ui(frame, &mut app))?;
+        terminal.draw(|frame| draw_ui(frame, app))?;
     }
 
     app.mark_done();
+    Ok(true)
+}
+
+fn run_app(
+    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    runner: &TestRunner,
+) -> anyhow::Result<bool> {
+    let total = runner.total_tests();
+    let mut app = App::new(total);
+    let mut perf_mode = false;
+    let mut batch_mode = false;
+
+    // Initial run (full validation)
+    run_tests(terminal, runner, &mut app, perf_mode, batch_mode)?;
 
     loop {
         terminal.draw(|frame| draw_ui(frame, &mut app))?;
@@ -85,6 +116,24 @@ fn run_app(
                                 if let Err(e) = app.save_to_json() {
                                     app.set_status(format!("Error: {e}"));
                                 }
+                            }
+                            KeyCode::Char('p') if app.done => {
+                                // Toggle perf mode and rerun
+                                perf_mode = !perf_mode;
+                                batch_mode = false;
+                                app.reset(perf_mode, batch_mode);
+                                let mode_name = if perf_mode { "PERF" } else { "FULL" };
+                                app.set_status(format!("Rerunning in {mode_name} mode..."));
+                                run_tests(terminal, runner, &mut app, perf_mode, batch_mode)?;
+                            }
+                            KeyCode::Char('b') if app.done => {
+                                // Toggle batch mode and rerun
+                                batch_mode = !batch_mode;
+                                perf_mode = false;
+                                app.reset(perf_mode, batch_mode);
+                                let mode_name = if batch_mode { "BATCH" } else { "FULL" };
+                                app.set_status(format!("Rerunning in {mode_name} mode..."));
+                                run_tests(terminal, runner, &mut app, perf_mode, batch_mode)?;
                             }
                             KeyCode::Char('c') => app.toggle_comparison_mode(),
                             KeyCode::Up | KeyCode::Char('k') => app.select_previous(),

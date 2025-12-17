@@ -7,6 +7,7 @@
 //! 4. Use spreadsheet engine to recalculate and export to CSV
 //! 5. Compare results against expected values
 
+use std::fmt::Write;
 use std::fs;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
@@ -116,6 +117,325 @@ impl TestRunner {
             })
             .chain(self.test_cases.iter().map(|tc| self.run_test(tc)))
             .collect()
+    }
+
+    /// Runs all tests in batch mode (single XLSX, faster).
+    ///
+    /// Creates one YAML with all formulas, exports once, validates with Gnumeric once.
+    #[allow(clippy::too_many_lines)]
+    pub fn run_batch(&self) -> Vec<TestResult> {
+        // Skip results first
+        let mut results: Vec<TestResult> = self
+            .skip_cases
+            .iter()
+            .map(|sc| TestResult::Skip {
+                name: sc.name.clone(),
+                reason: sc.reason.clone(),
+            })
+            .collect();
+
+        if self.test_cases.is_empty() {
+            return results;
+        }
+
+        // Create a single YAML with all test formulas
+        let mut yaml_content = String::from("_forge_version: \"1.0.0\"\nassumptions:\n");
+        for (i, tc) in self.test_cases.iter().enumerate() {
+            let escaped_formula = tc.formula.replace('"', "\\\"");
+            let _ = write!(
+                yaml_content,
+                "  test_{i}:\n    value: null\n    formula: \"{escaped_formula}\"\n"
+            );
+        }
+
+        let temp_dir = match tempfile::tempdir() {
+            Ok(d) => d,
+            Err(e) => {
+                // Return all as failed
+                for tc in &self.test_cases {
+                    results.push(TestResult::Fail {
+                        name: tc.name.clone(),
+                        formula: tc.formula.clone(),
+                        expected: tc.expected,
+                        actual: None,
+                        error: Some(format!("Failed to create temp dir: {e}")),
+                    });
+                }
+                return results;
+            }
+        };
+
+        let yaml_path = temp_dir.path().join("batch.yaml");
+        let xlsx_path = temp_dir.path().join("batch.xlsx");
+
+        if let Err(e) = fs::write(&yaml_path, &yaml_content) {
+            for tc in &self.test_cases {
+                results.push(TestResult::Fail {
+                    name: tc.name.clone(),
+                    formula: tc.formula.clone(),
+                    expected: tc.expected,
+                    actual: None,
+                    error: Some(format!("Failed to write YAML: {e}")),
+                });
+            }
+            return results;
+        }
+
+        // Run forge-demo export once
+        let output = match Command::new(&self.forge_binary)
+            .arg("export")
+            .arg(&yaml_path)
+            .arg(&xlsx_path)
+            .output()
+        {
+            Ok(o) => o,
+            Err(e) => {
+                for tc in &self.test_cases {
+                    results.push(TestResult::Fail {
+                        name: tc.name.clone(),
+                        formula: tc.formula.clone(),
+                        expected: tc.expected,
+                        actual: None,
+                        error: Some(format!("Failed to run forge-demo: {e}")),
+                    });
+                }
+                return results;
+            }
+        };
+
+        if !output.status.success() {
+            let err = String::from_utf8_lossy(&output.stderr);
+            for tc in &self.test_cases {
+                results.push(TestResult::Fail {
+                    name: tc.name.clone(),
+                    formula: tc.formula.clone(),
+                    expected: tc.expected,
+                    actual: None,
+                    error: Some(format!("forge-demo export failed: {err}")),
+                });
+            }
+            return results;
+        }
+
+        // Convert XLSX to CSV using Gnumeric once
+        let csv_path = match self.engine.xlsx_to_csv(&xlsx_path, temp_dir.path()) {
+            Ok(p) => p,
+            Err(e) => {
+                for tc in &self.test_cases {
+                    results.push(TestResult::Fail {
+                        name: tc.name.clone(),
+                        formula: tc.formula.clone(),
+                        expected: tc.expected,
+                        actual: None,
+                        error: Some(format!("CSV conversion failed: {e}")),
+                    });
+                }
+                return results;
+            }
+        };
+
+        // Parse CSV and match results to test cases
+        let csv_results = Self::parse_batch_csv(&csv_path, self.test_cases.len());
+        for (i, tc) in self.test_cases.iter().enumerate() {
+            match csv_results.get(i) {
+                Some(Ok(actual)) => {
+                    if (*actual - tc.expected).abs() < f64::EPSILON {
+                        results.push(TestResult::Pass {
+                            name: tc.name.clone(),
+                            formula: tc.formula.clone(),
+                            expected: tc.expected,
+                            actual: *actual,
+                        });
+                    } else {
+                        results.push(TestResult::Fail {
+                            name: tc.name.clone(),
+                            formula: tc.formula.clone(),
+                            expected: tc.expected,
+                            actual: Some(*actual),
+                            error: None,
+                        });
+                    }
+                }
+                Some(Err(e)) => {
+                    results.push(TestResult::Fail {
+                        name: tc.name.clone(),
+                        formula: tc.formula.clone(),
+                        expected: tc.expected,
+                        actual: None,
+                        error: Some(e.clone()),
+                    });
+                }
+                None => {
+                    results.push(TestResult::Fail {
+                        name: tc.name.clone(),
+                        formula: tc.formula.clone(),
+                        expected: tc.expected,
+                        actual: None,
+                        error: Some("Missing result in CSV".to_string()),
+                    });
+                }
+            }
+        }
+
+        results
+    }
+
+    /// Parses batch CSV output to extract results for each test.
+    fn parse_batch_csv(csv_path: &Path, count: usize) -> Vec<Result<f64, String>> {
+        let mut results = Vec::with_capacity(count);
+        let file = match fs::File::open(csv_path) {
+            Ok(f) => f,
+            Err(e) => {
+                for _ in 0..count {
+                    results.push(Err(format!("Failed to open CSV: {e}")));
+                }
+                return results;
+            }
+        };
+
+        let reader = BufReader::new(file);
+        for line in reader.lines() {
+            let Ok(line) = line else { continue };
+            let cells: Vec<&str> = line
+                .split(',')
+                .map(|s| s.trim_matches('"').trim())
+                .collect();
+
+            // Look for test_N labels and their values
+            for (i, cell) in cells.iter().enumerate() {
+                if cell.starts_with("test_") && i + 1 < cells.len() {
+                    if let Ok(value) = cells[i + 1].replace(',', "").parse::<f64>() {
+                        results.push(Ok(value));
+                    }
+                }
+            }
+        }
+
+        // Pad with errors if not enough results
+        while results.len() < count {
+            results.push(Err("Missing result in CSV output".to_string()));
+        }
+
+        results
+    }
+
+    /// Runs a perf test using forge's calculation engine (no Gnumeric).
+    ///
+    /// Tests formula calculation directly via `forge calculate`.
+    /// Compares calculated value against expected value.
+    pub fn run_perf_test(&self, test_case: &TestCase) -> TestResult {
+        let escaped_formula = test_case.formula.replace('"', "\\\"");
+        let yaml_content = format!(
+            r#"_forge_version: "1.0.0"
+assumptions:
+  test_result:
+    value: null
+    formula: "{escaped_formula}"
+"#
+        );
+
+        let temp_dir = match tempfile::tempdir() {
+            Ok(d) => d,
+            Err(e) => {
+                return TestResult::Fail {
+                    name: test_case.name.clone(),
+                    formula: test_case.formula.clone(),
+                    expected: test_case.expected,
+                    actual: None,
+                    error: Some(format!("Failed to create temp dir: {e}")),
+                };
+            }
+        };
+
+        let yaml_path = temp_dir.path().join("test.yaml");
+
+        if let Err(e) = fs::write(&yaml_path, &yaml_content) {
+            return TestResult::Fail {
+                name: test_case.name.clone(),
+                formula: test_case.formula.clone(),
+                expected: test_case.expected,
+                actual: None,
+                error: Some(format!("Failed to write YAML: {e}")),
+            };
+        }
+
+        // Use `forge calculate --dry-run` to test calculation engine
+        let output = match Command::new(&self.forge_binary)
+            .arg("calculate")
+            .arg("--dry-run")
+            .arg(&yaml_path)
+            .output()
+        {
+            Ok(o) => o,
+            Err(e) => {
+                return TestResult::Fail {
+                    name: test_case.name.clone(),
+                    formula: test_case.formula.clone(),
+                    expected: test_case.expected,
+                    actual: None,
+                    error: Some(format!("Failed to run forge calculate: {e}")),
+                };
+            }
+        };
+
+        if !output.status.success() {
+            return TestResult::Fail {
+                name: test_case.name.clone(),
+                formula: test_case.formula.clone(),
+                expected: test_case.expected,
+                actual: None,
+                error: Some(format!(
+                    "forge calculate failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                )),
+            };
+        }
+
+        // Parse output: "assumptions.test_result = <value>"
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        match Self::parse_calculate_output(&stdout, "test_result") {
+            Ok(actual) => {
+                if (actual - test_case.expected).abs() < f64::EPSILON {
+                    TestResult::Pass {
+                        name: test_case.name.clone(),
+                        formula: test_case.formula.clone(),
+                        expected: test_case.expected,
+                        actual,
+                    }
+                } else {
+                    TestResult::Fail {
+                        name: test_case.name.clone(),
+                        formula: test_case.formula.clone(),
+                        expected: test_case.expected,
+                        actual: Some(actual),
+                        error: None,
+                    }
+                }
+            }
+            Err(e) => TestResult::Fail {
+                name: test_case.name.clone(),
+                formula: test_case.formula.clone(),
+                expected: test_case.expected,
+                actual: None,
+                error: Some(e),
+            },
+        }
+    }
+
+    /// Parses `forge calculate` output to extract a value.
+    ///
+    /// Output format: `assumptions.<name> = <value>`
+    fn parse_calculate_output(output: &str, var_name: &str) -> Result<f64, String> {
+        let pattern = format!("assumptions.{var_name} = ");
+        for line in output.lines() {
+            if let Some(rest) = line.trim().strip_prefix(&pattern) {
+                return rest
+                    .trim()
+                    .parse::<f64>()
+                    .map_err(|e| format!("Failed to parse value: {e}"));
+            }
+        }
+        Err(format!("Could not find {var_name} in output"))
     }
 
     /// Runs a single test case.

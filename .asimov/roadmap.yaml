@@ -19,20 +19,21 @@ completed:
 
 current:
   version: "2.1.0"
-  summary: "Regression Detection"
-  priority: LOW
-  status: planned
-  notes: "Save baseline, detect result changes across runs"
+  summary: "Performance Testing Mode"
+  priority: HIGH
+  status: wip
+  notes: "Fast testing without Gnumeric roundtrip overhead"
   deliverables:
-    - "Save baseline results to JSON"
-    - "Compare current run against baseline"
-    - "Flag regressions (previously passing tests now failing)"
+    - "p key: Perf mode - test forge calculate engine, skip Gnumeric [DONE]"
+    - "b key: Batch mode - run all formulas in single XLSX [DONE]"
+    - "Parallel execution with rayon for concurrent tests"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # BACKLOG
 # ═══════════════════════════════════════════════════════════════════════════════
 
 backlog:
+  - "Regression Detection (save baseline, detect changes)"
   - "Re-run failed tests with r key"
   - "Expand/collapse by category (math.*, text.*, etc.)"
   - "Run tests in background thread (non-blocking UI)"

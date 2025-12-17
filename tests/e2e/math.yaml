@@ -1,289 +1,202 @@
-# E2E Math Function Tests
-# Validated against Gnumeric
-
-_forge_version: "1.0.0"
-
+_forge_version: 1.0.0
 assumptions:
-  # ABS
   test_abs_positive:
-    value: null
-    formula: "=ABS(42)"
+    value: 42.0
+    formula: =ABS(42)
     expected: 42
-
   test_abs_negative:
-    value: null
-    formula: "=ABS(-42)"
+    value: 42.0
+    formula: =ABS(-42)
     expected: 42
-
   test_abs_zero:
-    value: null
-    formula: "=ABS(0)"
+    value: 0.0
+    formula: =ABS(0)
     expected: 0
-
-  # SQRT
   test_sqrt_perfect:
-    value: null
-    formula: "=SQRT(144)"
+    value: 12.0
+    formula: =SQRT(144)
     expected: 12
-
   test_sqrt_four:
-    value: null
-    formula: "=SQRT(4)"
+    value: 2.0
+    formula: =SQRT(4)
     expected: 2
-
-  # POWER
   test_power_squared:
-    value: null
-    formula: "=POWER(2, 10)"
+    value: 1024.0
+    formula: =POWER(2, 10)
     expected: 1024
-
   test_power_cubed:
-    value: null
-    formula: "=POWER(3, 3)"
+    value: 27.0
+    formula: =POWER(3, 3)
     expected: 27
-
-  # MOD
   test_mod_basic:
-    value: null
-    formula: "=MOD(10, 3)"
+    value: 1.0
+    formula: =MOD(10, 3)
     expected: 1
-
   test_mod_exact:
-    value: null
-    formula: "=MOD(12, 4)"
+    value: 0.0
+    formula: =MOD(12, 4)
     expected: 0
-
-  # ROUND
   test_round_up:
-    value: null
-    formula: "=ROUND(2.567, 2)"
+    value: 2.57
+    formula: =ROUND(2.567, 2)
     expected: 2.57
-
   test_round_down:
-    value: null
-    formula: "=ROUND(2.564, 2)"
+    value: 2.56
+    formula: =ROUND(2.564, 2)
     expected: 2.56
-
-  # ROUNDUP
   test_roundup_pos:
-    value: null
-    formula: "=ROUNDUP(2.321, 2)"
+    value: 2.33
+    formula: =ROUNDUP(2.321, 2)
     expected: 2.33
-
-  # ROUNDDOWN
   test_rounddown_pos:
-    value: null
-    formula: "=ROUNDDOWN(2.789, 2)"
+    value: 2.78
+    formula: =ROUNDDOWN(2.789, 2)
     expected: 2.78
-
-  # FLOOR
   test_floor_basic:
-    value: null
-    formula: "=FLOOR(2.7, 1)"
+    value: 2.0
+    formula: =FLOOR(2.7, 1)
     expected: 2
-
-  # CEILING
   test_ceiling_basic:
-    value: null
-    formula: "=CEILING(2.3, 1)"
+    value: 3.0
+    formula: =CEILING(2.3, 1)
     expected: 3
-
-  # ═══════════════════════════════════════════════════════════════════════════════
-  # TRIGONOMETRIC FUNCTIONS
-  # ═══════════════════════════════════════════════════════════════════════════════
-
-  # SIN (input in radians)
   test_sin_zero:
-    value: null
-    formula: "=ROUND(SIN(0), 10)"
+    value: 0.0
+    formula: =ROUND(SIN(0), 10)
     expected: 0
-
   test_sin_pi_half:
-    value: null
-    formula: "=ROUND(SIN(PI()/2), 10)"
+    value: 1.0
+    formula: =ROUND(SIN(PI()/2), 10)
     expected: 1
-
   test_sin_pi:
-    value: null
-    formula: "=ROUND(SIN(PI()), 10)"
+    value: 0.0
+    formula: =ROUND(SIN(PI()), 10)
     expected: 0
-
-  # COS (input in radians)
   test_cos_zero:
-    value: null
-    formula: "=ROUND(COS(0), 10)"
+    value: 1.0
+    formula: =ROUND(COS(0), 10)
     expected: 1
-
   test_cos_pi_half:
-    value: null
-    formula: "=ROUND(COS(PI()/2), 10)"
+    value: 0.0
+    formula: =ROUND(COS(PI()/2), 10)
     expected: 0
-
   test_cos_pi:
-    value: null
-    formula: "=ROUND(COS(PI()), 10)"
+    value: -1.0
+    formula: =ROUND(COS(PI()), 10)
     expected: -1
-
-  # TAN (input in radians)
   test_tan_zero:
-    value: null
-    formula: "=ROUND(TAN(0), 10)"
+    value: 0.0
+    formula: =ROUND(TAN(0), 10)
     expected: 0
-
   test_tan_pi_quarter:
-    value: null
-    formula: "=ROUND(TAN(PI()/4), 10)"
+    value: 1.0
+    formula: =ROUND(TAN(PI()/4), 10)
     expected: 1
-
-  # ASIN (returns radians)
   test_asin_zero:
-    value: null
-    formula: "=ROUND(ASIN(0), 10)"
+    value: 0.0
+    formula: =ROUND(ASIN(0), 10)
     expected: 0
-
   test_asin_one:
-    value: null
-    formula: "=ROUND(ASIN(1) - PI()/2, 10)"
+    value: 0.0
+    formula: =ROUND(ASIN(1) - PI()/2, 10)
     expected: 0
-
-  # ACOS (returns radians)
   test_acos_one:
-    value: null
-    formula: "=ROUND(ACOS(1), 10)"
+    value: 0.0
+    formula: =ROUND(ACOS(1), 10)
     expected: 0
-
   test_acos_zero:
-    value: null
-    formula: "=ROUND(ACOS(0) - PI()/2, 10)"
+    value: 0.0
+    formula: =ROUND(ACOS(0) - PI()/2, 10)
     expected: 0
-
-  # ATAN (returns radians)
   test_atan_zero:
-    value: null
-    formula: "=ROUND(ATAN(0), 10)"
+    value: 0.0
+    formula: =ROUND(ATAN(0), 10)
     expected: 0
-
   test_atan_one:
-    value: null
-    formula: "=ROUND(ATAN(1) - PI()/4, 10)"
+    value: 0.0
+    formula: =ROUND(ATAN(1) - PI()/4, 10)
     expected: 0
-
-  # ═══════════════════════════════════════════════════════════════════════════════
-  # LOGARITHMIC & EXPONENTIAL FUNCTIONS
-  # ═══════════════════════════════════════════════════════════════════════════════
-
-  # EXP (e^x)
   test_exp_zero:
-    value: null
-    formula: "=ROUND(EXP(0), 10)"
+    value: 1.0
+    formula: =ROUND(EXP(0), 10)
     expected: 1
-
   test_exp_one:
-    value: null
-    formula: "=ROUND(EXP(1), 5)"
+    value: 2.71828
+    formula: =ROUND(EXP(1), 5)
     expected: 2.71828
-
   test_exp_two:
-    value: null
-    formula: "=ROUND(EXP(2), 5)"
+    value: 7.38906
+    formula: =ROUND(EXP(2), 5)
     expected: 7.38906
-
-  # LN (natural log)
   test_ln_one:
-    value: null
-    formula: "=ROUND(LN(1), 10)"
+    value: 0.0
+    formula: =ROUND(LN(1), 10)
     expected: 0
-
   test_ln_e:
-    value: null
-    formula: "=ROUND(LN(EXP(1)), 10)"
+    value: 1.0
+    formula: =ROUND(LN(EXP(1)), 10)
     expected: 1
-
   test_ln_e_squared:
-    value: null
-    formula: "=ROUND(LN(EXP(2)), 10)"
+    value: 2.0
+    formula: =ROUND(LN(EXP(2)), 10)
     expected: 2
-
-  # LOG10 (base-10 log)
   test_log10_one:
-    value: null
-    formula: "=ROUND(LOG10(1), 10)"
+    value: 0.0
+    formula: =ROUND(LOG10(1), 10)
     expected: 0
-
   test_log10_ten:
-    value: null
-    formula: "=ROUND(LOG10(10), 10)"
+    value: 1.0
+    formula: =ROUND(LOG10(10), 10)
     expected: 1
-
   test_log10_hundred:
-    value: null
-    formula: "=ROUND(LOG10(100), 10)"
+    value: 2.0
+    formula: =ROUND(LOG10(100), 10)
     expected: 2
-
   test_log10_thousand:
-    value: null
-    formula: "=ROUND(LOG10(1000), 10)"
+    value: 3.0
+    formula: =ROUND(LOG10(1000), 10)
     expected: 3
-
-  # ═══════════════════════════════════════════════════════════════════════════════
-  # MISC MATH FUNCTIONS
-  # ═══════════════════════════════════════════════════════════════════════════════
-
-  # PI
   test_pi_value:
-    value: null
-    formula: "=ROUND(PI(), 5)"
+    value: 3.14159
+    formula: =ROUND(PI(), 5)
     expected: 3.14159
-
   test_pi_times_two:
-    value: null
-    formula: "=ROUND(PI()*2, 5)"
+    value: 6.28319
+    formula: =ROUND(PI()*2, 5)
     expected: 6.28319
-
-  # INT (truncate toward negative infinity)
   test_int_positive:
-    value: null
-    formula: "=INT(5.7)"
+    value: 5.0
+    formula: =INT(5.7)
     expected: 5
-
   test_int_negative:
-    value: null
-    formula: "=INT(-5.7)"
+    value: -6.0
+    formula: =INT(-5.7)
     expected: -6
-
   test_int_exact:
-    value: null
-    formula: "=INT(10)"
+    value: 10.0
+    formula: =INT(10)
     expected: 10
-
-  # TRUNC (truncate toward zero)
   test_trunc_positive:
-    value: null
-    formula: "=TRUNC(5.7)"
+    value: 5.0
+    formula: =TRUNC(5.7)
     expected: 5
-
   test_trunc_negative:
-    value: null
-    formula: "=TRUNC(-5.7)"
+    value: -5.0
+    formula: =TRUNC(-5.7)
     expected: -5
-
   test_trunc_with_decimals:
-    value: null
-    formula: "=TRUNC(5.789, 2)"
+    value: 5.78
+    formula: =TRUNC(5.789, 2)
     expected: 5.78
-
-  # SIGN
   test_sign_positive:
-    value: null
-    formula: "=SIGN(42)"
+    value: 1.0
+    formula: =SIGN(42)
     expected: 1
-
   test_sign_negative:
-    value: null
-    formula: "=SIGN(-42)"
+    value: -1.0
+    formula: =SIGN(-42)
     expected: -1
-
   test_sign_zero:
-    value: null
-    formula: "=SIGN(0)"
+    value: 0.0
+    formula: =SIGN(0)
     expected: 0
