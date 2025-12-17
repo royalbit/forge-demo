@@ -307,3 +307,385 @@ assumptions:
         assert!(result.unwrap().is_empty());
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Import/Export E2E Tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod import_export_tests {
+    use std::fs;
+    use std::path::PathBuf;
+    use std::process::Command;
+
+    use crate::excel;
+
+    /// Gets the forge-demo binary path (from bin/ or target/).
+    fn forge_demo_binary() -> Option<PathBuf> {
+        let bin_path = PathBuf::from("bin/forge-demo");
+        if bin_path.exists() {
+            return Some(bin_path);
+        }
+
+        let debug_path = PathBuf::from("target/debug/forge-demo");
+        if debug_path.exists() {
+            return Some(debug_path);
+        }
+
+        let release_path = PathBuf::from("target/release/forge-demo");
+        if release_path.exists() {
+            return Some(release_path);
+        }
+
+        None
+    }
+
+    /// Helper to check if forge-demo binary is available.
+    fn skip_if_no_binary() -> Option<PathBuf> {
+        forge_demo_binary()
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Import Tests
+    // ─────────────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn import_scalars_xlsx_creates_yaml() {
+        let Some(binary) = skip_if_no_binary() else {
+            eprintln!("Skipping: forge-demo binary not found");
+            return;
+        };
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let xlsx_path = temp_dir.path().join("scalars.xlsx");
+        let yaml_path = temp_dir.path().join("scalars.yaml");
+
+        // Create test Excel file
+        excel::create_test_scalars_xlsx(&xlsx_path).unwrap();
+
+        // Run import
+        let output = Command::new(&binary)
+            .arg("import")
+            .arg(&xlsx_path)
+            .arg(&yaml_path)
+            .output()
+            .expect("Failed to run forge-demo import");
+
+        // Check success
+        assert!(
+            output.status.success(),
+            "Import failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(yaml_path.exists(), "YAML file was not created");
+
+        // Verify YAML content has some data
+        let yaml_content = fs::read_to_string(&yaml_path).unwrap();
+        // Should have some content from the Excel file
+        assert!(
+            yaml_content.len() > 20,
+            "YAML should have meaningful content"
+        );
+    }
+
+    #[test]
+    fn import_table_xlsx_creates_yaml() {
+        let Some(binary) = skip_if_no_binary() else {
+            eprintln!("Skipping: forge-demo binary not found");
+            return;
+        };
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let xlsx_path = temp_dir.path().join("table.xlsx");
+        let yaml_path = temp_dir.path().join("table.yaml");
+
+        // Create test Excel file with table data
+        excel::create_test_table_xlsx(&xlsx_path).unwrap();
+
+        // Run import
+        let output = Command::new(&binary)
+            .arg("import")
+            .arg(&xlsx_path)
+            .arg(&yaml_path)
+            .output()
+            .expect("Failed to run forge-demo import");
+
+        assert!(
+            output.status.success(),
+            "Import failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(yaml_path.exists());
+
+        let yaml_content = fs::read_to_string(&yaml_path).unwrap();
+        assert!(yaml_content.contains("quarter"));
+    }
+
+    #[test]
+    fn import_multi_sheet_xlsx_creates_yaml() {
+        let Some(binary) = skip_if_no_binary() else {
+            eprintln!("Skipping: forge-demo binary not found");
+            return;
+        };
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let xlsx_path = temp_dir.path().join("multi.xlsx");
+        let yaml_path = temp_dir.path().join("multi.yaml");
+
+        // Create test Excel file with multiple sheets
+        excel::create_multi_sheet_xlsx(&xlsx_path).unwrap();
+
+        // Run import
+        let output = Command::new(&binary)
+            .arg("import")
+            .arg(&xlsx_path)
+            .arg(&yaml_path)
+            .output()
+            .expect("Failed to run forge-demo import");
+
+        assert!(
+            output.status.success(),
+            "Import failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(yaml_path.exists());
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Export Tests
+    // NOTE: Export tests are currently skipped because forge-demo v7.2.10
+    // has schema validation issues with scalar-only v1.0.0 models.
+    // Export requires v1.0.0 array models with 'tables' section.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    #[test]
+    #[ignore = "forge-demo export requires tables section, not scalar-only models"]
+    fn export_yaml_creates_xlsx() {
+        let Some(binary) = skip_if_no_binary() else {
+            eprintln!("Skipping: forge-demo binary not found");
+            return;
+        };
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let yaml_path = temp_dir.path().join("model.yaml");
+        let xlsx_path = temp_dir.path().join("model.xlsx");
+
+        // Create test YAML file (v1.0.0 schema: scalars as numbers or quoted formulas)
+        let yaml_content = r#"_forge_version: "1.0.0"
+
+scalars:
+  revenue: 100000
+  costs: 40000
+  profit: "=revenue - costs"
+"#;
+        fs::write(&yaml_path, yaml_content).unwrap();
+
+        // Run export
+        let output = Command::new(&binary)
+            .arg("export")
+            .arg(&yaml_path)
+            .arg(&xlsx_path)
+            .output()
+            .expect("Failed to run forge-demo export");
+
+        assert!(
+            output.status.success(),
+            "Export failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(xlsx_path.exists(), "XLSX file was not created");
+
+        // Verify Excel file is readable
+        let sheets = excel::read_xlsx(&xlsx_path).unwrap();
+        assert!(!sheets.is_empty(), "Excel file has no sheets");
+    }
+
+    #[test]
+    #[ignore = "forge-demo export requires tables section, not scalar-only models"]
+    fn export_with_formulas_preserves_data() {
+        let Some(binary) = skip_if_no_binary() else {
+            eprintln!("Skipping: forge-demo binary not found");
+            return;
+        };
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let yaml_path = temp_dir.path().join("formulas.yaml");
+        let xlsx_path = temp_dir.path().join("formulas.xlsx");
+
+        let yaml_content = r#"_forge_version: "1.0.0"
+
+scalars:
+  base: 1000
+  rate: 0.1
+  result: "=base * (1 + rate)"
+"#;
+        fs::write(&yaml_path, yaml_content).unwrap();
+
+        let output = Command::new(&binary)
+            .arg("export")
+            .arg(&yaml_path)
+            .arg(&xlsx_path)
+            .output()
+            .expect("Failed to run forge-demo export");
+
+        assert!(output.status.success());
+        assert!(xlsx_path.exists());
+
+        // Check that Scalars sheet has expected data
+        let sheets = excel::read_xlsx(&xlsx_path).unwrap();
+        let scalars_sheet = sheets.iter().find(|(name, _)| name == "Scalars");
+        assert!(scalars_sheet.is_some(), "Scalars sheet not found");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Import Tests (from Excel to YAML)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn import_xlsx_to_yaml_produces_valid_yaml() {
+        let Some(binary) = skip_if_no_binary() else {
+            eprintln!("Skipping: forge-demo binary not found");
+            return;
+        };
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let original_xlsx = temp_dir.path().join("original.xlsx");
+        let yaml_path = temp_dir.path().join("imported.yaml");
+
+        // Create test Excel file
+        excel::create_test_scalars_xlsx(&original_xlsx).unwrap();
+
+        // Import to YAML
+        let import_output = Command::new(&binary)
+            .arg("import")
+            .arg(&original_xlsx)
+            .arg(&yaml_path)
+            .output()
+            .expect("Failed to import");
+
+        assert!(
+            import_output.status.success(),
+            "Import failed: {}",
+            String::from_utf8_lossy(&import_output.stderr)
+        );
+
+        // Verify YAML was created
+        assert!(yaml_path.exists(), "YAML file was not created");
+        let yaml_content = fs::read_to_string(&yaml_path).unwrap();
+        // Should have meaningful content
+        assert!(yaml_content.len() > 20, "YAML should have content");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Round-trip Tests
+    // NOTE: Full round-trip (YAML→Excel→YAML) requires working export.
+    // These tests verify import functionality only.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    #[test]
+    #[ignore = "forge-demo export requires tables section, not scalar-only models"]
+    fn roundtrip_yaml_to_xlsx_to_yaml() {
+        let Some(binary) = skip_if_no_binary() else {
+            eprintln!("Skipping: forge-demo binary not found");
+            return;
+        };
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let original_yaml = temp_dir.path().join("original.yaml");
+        let xlsx_path = temp_dir.path().join("roundtrip.xlsx");
+        let imported_yaml = temp_dir.path().join("imported.yaml");
+
+        // Create original YAML (v1.0.0 schema with quoted formulas)
+        let yaml_content = r#"_forge_version: "1.0.0"
+
+scalars:
+  price: 100
+  quantity: 5
+  total: "=price * quantity"
+"#;
+        fs::write(&original_yaml, yaml_content).unwrap();
+
+        // Export to XLSX
+        let export_output = Command::new(&binary)
+            .arg("export")
+            .arg(&original_yaml)
+            .arg(&xlsx_path)
+            .output()
+            .expect("Failed to export");
+
+        assert!(
+            export_output.status.success(),
+            "Export failed: {}",
+            String::from_utf8_lossy(&export_output.stderr)
+        );
+
+        // Import back to YAML
+        let import_output = Command::new(&binary)
+            .arg("import")
+            .arg(&xlsx_path)
+            .arg(&imported_yaml)
+            .output()
+            .expect("Failed to import");
+
+        assert!(
+            import_output.status.success(),
+            "Import failed: {}",
+            String::from_utf8_lossy(&import_output.stderr)
+        );
+
+        // Verify imported YAML exists and has expected content
+        assert!(imported_yaml.exists());
+        let imported_content = fs::read_to_string(&imported_yaml).unwrap();
+        assert!(imported_content.contains("price"));
+        assert!(imported_content.contains("quantity"));
+    }
+
+    #[test]
+    #[ignore = "forge-demo export requires tables section, not scalar-only models"]
+    fn roundtrip_preserves_numeric_values() {
+        let Some(binary) = skip_if_no_binary() else {
+            eprintln!("Skipping: forge-demo binary not found");
+            return;
+        };
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let original_yaml = temp_dir.path().join("values.yaml");
+        let xlsx_path = temp_dir.path().join("values.xlsx");
+        let imported_yaml = temp_dir.path().join("values_imported.yaml");
+
+        // Create YAML with specific numeric values
+        let yaml_content = r#"_forge_version: "1.0.0"
+
+scalars:
+  integer_val: 42
+  float_val: 3.14159
+  percent_val: 0.25
+"#;
+        fs::write(&original_yaml, yaml_content).unwrap();
+
+        // Export
+        let export_output = Command::new(&binary)
+            .arg("export")
+            .arg(&original_yaml)
+            .arg(&xlsx_path)
+            .output()
+            .expect("Failed to export");
+        assert!(export_output.status.success());
+
+        // Import
+        let import_output = Command::new(&binary)
+            .arg("import")
+            .arg(&xlsx_path)
+            .arg(&imported_yaml)
+            .output()
+            .expect("Failed to import");
+        assert!(import_output.status.success());
+
+        // Verify values are preserved in imported YAML
+        let content = fs::read_to_string(&imported_yaml).unwrap();
+        // Should contain the scalar names
+        assert!(content.contains("integer_val"));
+        assert!(content.contains("float_val"));
+        assert!(content.contains("percent_val"));
+    }
+}

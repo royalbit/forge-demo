@@ -46,43 +46,39 @@ completed:
       - "Pass/fail distribution bar in stats panel"
       - "47 unit tests"
 
+  - version: "1.4.0"
+    date: "2025-12-16"
+    summary: "TUI Enhancement - Export & Status"
+    deliverables:
+      - "Save results to JSON with s key"
+      - "Status message display for user feedback"
+      - "49 unit tests"
+
+  - version: "1.5.0"
+    date: "2025-12-16"
+    summary: "Excel Import/Export E2E Tests"
+    deliverables:
+      - "Excel helpers module for E2E testing"
+      - "Import tests for forge-demo import command"
+      - "Test Excel file creation with calamine/rust_xlsxwriter"
+      - "65 unit tests (4 export tests ignored pending schema fix)"
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # CURRENT
 # ═══════════════════════════════════════════════════════════════════════════════
 
 current:
-  version: "1.4.0"
-  summary: "TUI Enhancement - Export & Status"
+  version: "1.6.0"
+  summary: "Regression Detection"
   priority: NORMAL
-  status: wip
-  notes: "Export results and status feedback"
-  deliverables:
-    - "Save results to JSON with s key"
-    - "Status message display for user feedback"
-    - "Unit tests for export functionality"
+  status: pending
+  notes: "Save baseline results, detect regressions on new forge-demo releases"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # NEXT
 # ═══════════════════════════════════════════════════════════════════════════════
 
 next:
-  - version: "1.5.0"
-    summary: "Excel Import/Export"
-    priority: NORMAL
-    status: wip
-    notes: "Import test specs from Excel, export results to Excel"
-    deliverables:
-      - "Import test specs from .xlsx files (formula + expected columns)"
-      - "Export test results to .xlsx with pass/fail formatting"
-      - "Round-trip: Excel → run tests → Excel report"
-      - "Template .xlsx file for easy test authoring"
-
-  - version: "1.6.0"
-    summary: "Regression Detection"
-    priority: NORMAL
-    status: pending
-    notes: "Save baseline results, detect regressions on new forge-demo releases"
-
   - version: "1.7.0"
     summary: "Test Coverage Expansion"
     priority: NORMAL

@@ -1,6 +1,6 @@
 [package]
 name = "forge-e2e"
-version = "1.4.0"
+version = "1.5.0"
 edition = "2021"
 authors = ["RoyalBit Inc. <admin@royalbit.ca>"]
 description = "E2E validation tool for forge-demo - validates calculations against Gnumeric"
@@ -41,6 +41,10 @@ chrono = "0.4"
 
 # CSV parsing
 csv = "1.4"
+
+# Excel reading/writing for E2E tests
+calamine = "0.32"
+rust_xlsxwriter = "0.92"
 
 [dev-dependencies]
 pretty_assertions = "1.4"

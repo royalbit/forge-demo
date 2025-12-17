@@ -4,6 +4,7 @@
 //! Default: TUI mode | --all: verbose headless mode
 
 mod engine;
+mod excel;
 mod runner;
 mod tui;
 mod types;
