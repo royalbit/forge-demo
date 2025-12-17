@@ -1,7 +1,7 @@
 //! forge-e2e: E2E validation tool for forge-demo.
 //!
 //! Validates forge-demo calculations against Gnumeric.
-//! Default: TUI mode | --all: verbose headless mode
+//! Default: TUI mode | --all: verbose headless mode (runs all 3 modes)
 
 mod engine;
 mod excel;
@@ -11,6 +11,7 @@ mod types;
 
 use std::path::PathBuf;
 use std::process::ExitCode;
+use std::time::Instant;
 
 use clap::Parser;
 use colored::Colorize;
@@ -103,20 +104,105 @@ fn main() -> ExitCode {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Runs in verbose headless mode with colored output.
+/// Executes all three test modes: Normal (Gnumeric), Perf (parallel), Batch.
+#[allow(clippy::too_many_lines)]
 fn run_all_mode(runner: &TestRunner) -> ExitCode {
     println!();
     println!("{}", "═".repeat(70).cyan());
     println!("{}", "  forge-e2e: E2E Validation Suite".cyan().bold());
     println!("{}", "═".repeat(70).cyan());
+
+    let mut total_failed = 0;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Mode 1: Normal (Gnumeric validation)
+    // ─────────────────────────────────────────────────────────────────────────
+    println!();
+    println!(
+        "{}",
+        "┌─ NORMAL MODE (Gnumeric validation) ─────────────────────────────────┐"
+            .cyan()
+            .bold()
+    );
+    let start = Instant::now();
+    let results = runner.run_all();
+    let elapsed = start.elapsed();
+
+    let (passed, failed, skipped) = print_results(&results);
+    total_failed += failed;
+    print_summary("Normal", passed, failed, skipped, elapsed);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Mode 2: Perf (parallel forge calculate)
+    // ─────────────────────────────────────────────────────────────────────────
+    println!();
+    println!(
+        "{}",
+        "┌─ PERF MODE (parallel forge calculate) ──────────────────────────────┐"
+            .cyan()
+            .bold()
+    );
+    let start = Instant::now();
+    let results = runner.run_perf_parallel();
+    let elapsed = start.elapsed();
+
+    let (passed, failed, skipped) = print_results(&results);
+    total_failed += failed;
+    print_summary("Perf", passed, failed, skipped, elapsed);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Mode 3: Batch (single XLSX, one Gnumeric call)
+    // ─────────────────────────────────────────────────────────────────────────
+    println!();
+    println!(
+        "{}",
+        "┌─ BATCH MODE (single XLSX, one Gnumeric call) ───────────────────────┐"
+            .cyan()
+            .bold()
+    );
+    let start = Instant::now();
+    let results = runner.run_batch();
+    let elapsed = start.elapsed();
+
+    let (passed, failed, skipped) = print_results(&results);
+    total_failed += failed;
+    print_summary("Batch", passed, failed, skipped, elapsed);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Final summary
+    // ─────────────────────────────────────────────────────────────────────────
+    println!();
+    println!("{}", "═".repeat(70).cyan());
+    if total_failed > 0 {
+        println!(
+            "  {} {}",
+            "FAILED:".red().bold(),
+            format!("{total_failed} test(s) failed across all modes").red()
+        );
+    } else {
+        println!(
+            "  {} {}",
+            "SUCCESS:".green().bold(),
+            "All modes passed!".green()
+        );
+    }
+    println!("{}", "═".repeat(70).cyan());
     println!();
 
-    let results = runner.run_all();
+    if total_failed > 0 {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
+}
 
+/// Prints test results and returns (passed, failed, skipped) counts.
+fn print_results(results: &[TestResult]) -> (usize, usize, usize) {
     let mut passed = 0;
     let mut failed = 0;
     let mut skipped = 0;
 
-    for result in &results {
+    for result in results {
         match result {
             TestResult::Pass { name, actual, .. } => {
                 println!(
@@ -157,35 +243,47 @@ fn run_all_mode(runner: &TestRunner) -> ExitCode {
         }
     }
 
-    println!();
-    println!("{}", "═".repeat(70).cyan());
+    (passed, failed, skipped)
+}
+
+/// Prints mode summary with timing.
+#[allow(clippy::cast_precision_loss)]
+fn print_summary(
+    mode: &str,
+    passed: usize,
+    failed: usize,
+    skipped: usize,
+    elapsed: std::time::Duration,
+) {
+    let total = passed + failed + skipped;
+    let tests_per_sec = if elapsed.as_secs_f64() > 0.0 {
+        total as f64 / elapsed.as_secs_f64()
+    } else {
+        0.0
+    };
+
+    println!("  ├─────────────────────────────────────────────────────────────────┤");
     if skipped > 0 {
         println!(
-            "  Results: {} {}, {} {}, {} {}",
-            passed.to_string().green().bold(),
-            "passed".green(),
-            failed.to_string().red().bold(),
-            "failed".red(),
-            skipped.to_string().yellow().bold(),
-            "skipped".yellow()
+            "  │ {}: {} passed, {} failed, {} skipped | {:.2}s ({:.1} tests/sec)",
+            mode.cyan().bold(),
+            passed.to_string().green(),
+            failed.to_string().red(),
+            skipped.to_string().yellow(),
+            elapsed.as_secs_f64(),
+            tests_per_sec
         );
     } else {
         println!(
-            "  Results: {} {}, {} {}",
-            passed.to_string().green().bold(),
-            "passed".green(),
-            failed.to_string().red().bold(),
-            "failed".red()
+            "  │ {}: {} passed, {} failed | {:.2}s ({:.1} tests/sec)",
+            mode.cyan().bold(),
+            passed.to_string().green(),
+            failed.to_string().red(),
+            elapsed.as_secs_f64(),
+            tests_per_sec
         );
     }
-    println!("{}", "═".repeat(70).cyan());
-    println!();
-
-    if failed > 0 {
-        ExitCode::FAILURE
-    } else {
-        ExitCode::SUCCESS
-    }
+    println!("  └─────────────────────────────────────────────────────────────────┘");
 }
 
 /// Runs in TUI mode.
