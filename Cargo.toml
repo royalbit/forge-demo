@@ -1,6 +1,6 @@
 [package]
 name = "forge-e2e"
-version = "1.2.0"
+version = "1.3.0"
 edition = "2021"
 authors = ["RoyalBit Inc. <admin@royalbit.ca>"]
 description = "E2E validation tool for forge-demo - validates calculations against Gnumeric"

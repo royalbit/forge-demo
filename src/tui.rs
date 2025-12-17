@@ -6,6 +6,8 @@
 //! - Tab between panels (results, details, stats)
 //! - Detail pane showing formula, expected, and actual values
 //! - Filter view: all/passed/failed (toggle with 1/2/3 keys)
+//! - Search mode with `/` key to filter by test name
+//! - Color-coded function categories (math, text, date, etc.)
 
 use std::fmt::Write as _;
 use std::io::{self, stdout};
@@ -23,6 +25,37 @@ use ratatui::{
 
 use crate::runner::TestRunner;
 use crate::types::TestResult;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Input Mode
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// The current input mode for the TUI.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum InputMode {
+    /// Normal navigation mode.
+    #[default]
+    Normal,
+    /// Search mode - typing filters results.
+    Search,
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Category Colors
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Returns the color for a test category based on its name prefix.
+fn category_color(name: &str) -> Color {
+    let category = name.split('.').next().unwrap_or("");
+    match category {
+        "math" | "aggregation" => Color::Blue,
+        "text" => Color::Yellow,
+        "date" => Color::Magenta,
+        "logical" => Color::Cyan,
+        "lookup" => Color::Green,
+        _ => Color::White,
+    }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Filter Mode
@@ -126,6 +159,10 @@ pub struct App {
     list_state: ListState,
     /// Cached filtered indices for the current filter mode.
     filtered_indices: Vec<usize>,
+    /// Current input mode (normal or search).
+    input_mode: InputMode,
+    /// Search query string.
+    search_query: String,
 }
 
 impl App {
@@ -144,6 +181,8 @@ impl App {
             filter_mode: FilterMode::default(),
             list_state: ListState::default(),
             filtered_indices: Vec::new(),
+            input_mode: InputMode::default(),
+            search_query: String::new(),
         }
     }
 
@@ -170,20 +209,63 @@ impl App {
         self.done = true;
     }
 
-    /// Updates the cached filtered indices based on the current filter mode.
+    /// Updates the cached filtered indices based on the current filter mode and search query.
     fn update_filtered_indices(&mut self) {
+        let query_lower = self.search_query.to_lowercase();
         self.filtered_indices = self
             .results
             .iter()
             .enumerate()
-            .filter(|(_, r)| match self.filter_mode {
-                FilterMode::All => true,
-                FilterMode::Passed => r.is_pass(),
-                FilterMode::Failed => r.is_fail(),
+            .filter(|(_, r)| {
+                // Apply filter mode
+                let passes_filter = match self.filter_mode {
+                    FilterMode::All => true,
+                    FilterMode::Passed => r.is_pass(),
+                    FilterMode::Failed => r.is_fail(),
+                };
+                // Apply search query
+                let passes_search =
+                    query_lower.is_empty() || r.name().to_lowercase().contains(&query_lower);
+                passes_filter && passes_search
             })
             .map(|(i, _)| i)
             .rev() // Most recent first
             .collect();
+    }
+
+    /// Enters search mode.
+    pub const fn enter_search_mode(&mut self) {
+        self.input_mode = InputMode::Search;
+    }
+
+    /// Exits search mode and clears the query.
+    pub fn exit_search_mode(&mut self) {
+        self.input_mode = InputMode::Normal;
+        self.search_query.clear();
+        self.update_filtered_indices();
+        if !self.filtered_indices.is_empty() {
+            self.list_state.select(Some(0));
+        }
+    }
+
+    /// Appends a character to the search query.
+    pub fn search_push(&mut self, c: char) {
+        self.search_query.push(c);
+        self.update_filtered_indices();
+        if self.filtered_indices.is_empty() {
+            self.list_state.select(None);
+        } else {
+            self.list_state.select(Some(0));
+        }
+    }
+
+    /// Removes the last character from the search query.
+    pub fn search_pop(&mut self) {
+        self.search_query.pop();
+        self.update_filtered_indices();
+        if !self.filtered_indices.is_empty() {
+            self.list_state.select(Some(0));
+        }
     }
 
     /// Sets the filter mode and updates the filtered indices.
@@ -329,25 +411,46 @@ fn run_app(
         if event::poll(Duration::from_millis(50))? {
             if let Event::Key(key) = event::read()? {
                 if key.kind == KeyEventKind::Press {
-                    match key.code {
-                        // Exit
-                        KeyCode::Char('q') | KeyCode::Esc => {
-                            return Ok(app.failed == 0);
-                        }
-                        KeyCode::Enter if app.done => {
-                            return Ok(app.failed == 0);
-                        }
-                        // Navigation
-                        KeyCode::Up | KeyCode::Char('k') => app.select_previous(),
-                        KeyCode::Down | KeyCode::Char('j') => app.select_next(),
-                        // Panel switching
-                        KeyCode::Tab => app.next_panel(),
-                        KeyCode::BackTab => app.prev_panel(),
-                        // Filter modes
-                        KeyCode::Char('1') => app.set_filter(FilterMode::All),
-                        KeyCode::Char('2') => app.set_filter(FilterMode::Passed),
-                        KeyCode::Char('3') => app.set_filter(FilterMode::Failed),
-                        _ => {}
+                    match app.input_mode {
+                        InputMode::Normal => match key.code {
+                            // Exit
+                            KeyCode::Char('q') | KeyCode::Esc => {
+                                return Ok(app.failed == 0);
+                            }
+                            KeyCode::Enter if app.done => {
+                                return Ok(app.failed == 0);
+                            }
+                            // Search mode
+                            KeyCode::Char('/') => app.enter_search_mode(),
+                            // Navigation
+                            KeyCode::Up | KeyCode::Char('k') => app.select_previous(),
+                            KeyCode::Down | KeyCode::Char('j') => app.select_next(),
+                            // Panel switching
+                            KeyCode::Tab => app.next_panel(),
+                            KeyCode::BackTab => app.prev_panel(),
+                            // Filter modes
+                            KeyCode::Char('1') => app.set_filter(FilterMode::All),
+                            KeyCode::Char('2') => app.set_filter(FilterMode::Passed),
+                            KeyCode::Char('3') => app.set_filter(FilterMode::Failed),
+                            _ => {}
+                        },
+                        InputMode::Search => match key.code {
+                            KeyCode::Esc => app.exit_search_mode(),
+                            KeyCode::Enter => {
+                                app.input_mode = InputMode::Normal;
+                            }
+                            KeyCode::Backspace => app.search_pop(),
+                            KeyCode::Char(c) => app.search_push(c),
+                            KeyCode::Up | KeyCode::Down => {
+                                // Allow navigation while searching
+                                if key.code == KeyCode::Up {
+                                    app.select_previous();
+                                } else {
+                                    app.select_next();
+                                }
+                            }
+                            _ => {}
+                        },
                     }
                 }
             }
@@ -476,22 +579,20 @@ fn draw_results_list(frame: &mut Frame, area: Rect, app: &mut App) {
     frame.render_stateful_widget(list, area, &mut app.list_state);
 }
 
-/// Formats a single test result as a list item.
+/// Formats a single test result as a list item with category coloring.
 fn format_result_item(result: &TestResult) -> ListItem<'static> {
-    let (symbol, style, text) = match result {
-        TestResult::Pass { name, actual, .. } => (
-            "✓",
-            Style::default().fg(Color::Green),
-            format!("{name} = {actual}"),
-        ),
+    let name = result.name();
+    let cat_color = category_color(name);
+
+    let (symbol, symbol_color, detail) = match result {
+        TestResult::Pass { actual, .. } => ("✓", Color::Green, format!("= {actual}")),
         TestResult::Fail {
-            name,
             expected,
             actual,
             error,
             ..
         } => {
-            let detail = actual.map_or_else(
+            let err_detail = actual.map_or_else(
                 || {
                     error
                         .as_ref()
@@ -499,19 +600,22 @@ fn format_result_item(result: &TestResult) -> ListItem<'static> {
                 },
                 |a| format!("expected {expected}, got {a}"),
             );
-            (
-                "✗",
-                Style::default().fg(Color::Red),
-                format!("{name}: {detail}"),
-            )
+            ("✗", Color::Red, err_detail)
         }
-        TestResult::Skip { name, reason, .. } => (
-            "⊘",
-            Style::default().fg(Color::Yellow),
-            format!("{name}: {reason}"),
-        ),
+        TestResult::Skip { reason, .. } => ("⊘", Color::Yellow, reason.clone()),
     };
-    ListItem::new(format!(" {symbol} {text}")).style(style)
+
+    // Create styled spans for colored output
+    let line = Line::from(vec![
+        Span::raw(" "),
+        Span::styled(symbol, Style::default().fg(symbol_color)),
+        Span::raw(" "),
+        Span::styled(name.to_string(), Style::default().fg(cat_color)),
+        Span::raw(" "),
+        Span::styled(detail, Style::default().fg(Color::DarkGray)),
+    ]);
+
+    ListItem::new(line)
 }
 
 /// Draws the detail pane for the selected test.
@@ -585,7 +689,7 @@ fn format_detail_content(result: &TestResult) -> String {
     }
 }
 
-/// Draws the statistics panel.
+/// Draws the statistics panel with pass/fail distribution bar.
 fn draw_stats(frame: &mut Frame, area: Rect, app: &App) {
     let is_active = app.active_panel == ActivePanel::Stats;
     let border_style = if is_active {
@@ -594,20 +698,37 @@ fn draw_stats(frame: &mut Frame, area: Rect, app: &App) {
         Style::default().fg(Color::DarkGray)
     };
 
-    let run_state = if app.done { "Completed" } else { "Running" };
-    let summary = format!(
-        "{run_state}: {} passed, {} failed, {} skipped",
-        app.passed, app.failed, app.skipped
-    );
+    let run_state = if app.done { "Done" } else { "Running" };
+    let total = app.passed + app.failed + app.skipped;
 
-    let text_style = if app.failed > 0 {
-        Style::default().fg(Color::Red)
+    // Create a visual bar showing pass/fail ratio
+    let bar_width = 20_usize;
+    let (pass_chars, fail_chars) = if total > 0 {
+        // Calculate pass ratio using integer math to avoid precision loss warnings
+        let pass_w = (app.passed * bar_width) / total;
+        (pass_w, bar_width - pass_w)
     } else {
-        Style::default().fg(Color::Green)
+        (0, bar_width)
     };
 
-    let widget = Paragraph::new(summary)
-        .style(text_style)
+    let bar = format!("[{}{}]", "█".repeat(pass_chars), "░".repeat(fail_chars));
+
+    let line1 = Line::from(vec![
+        Span::raw(format!("{run_state}: ")),
+        Span::styled(format!("{}", app.passed), Style::default().fg(Color::Green)),
+        Span::raw(" pass, "),
+        Span::styled(format!("{}", app.failed), Style::default().fg(Color::Red)),
+        Span::raw(" fail, "),
+        Span::styled(
+            format!("{}", app.skipped),
+            Style::default().fg(Color::Yellow),
+        ),
+        Span::raw(" skip"),
+    ]);
+
+    let line2 = Line::from(vec![Span::styled(bar, Style::default().fg(Color::Green))]);
+
+    let widget = Paragraph::new(vec![line1, line2])
         .alignment(Alignment::Center)
         .block(
             Block::default()
@@ -620,14 +741,31 @@ fn draw_stats(frame: &mut Frame, area: Rect, app: &App) {
 
 /// Draws the footer with key hints.
 fn draw_footer(frame: &mut Frame, area: Rect, app: &App) {
-    let hints = if app.done {
-        "↑/↓:navigate │ Tab:panel │ 1/2/3:filter │ q/Enter:exit"
-    } else {
-        "↑/↓:navigate │ Tab:panel │ 1/2/3:filter │ q:quit"
+    let content = match app.input_mode {
+        InputMode::Search => Line::from(vec![
+            Span::styled("Search: ", Style::default().fg(Color::Cyan)),
+            Span::raw(&app.search_query),
+            Span::styled("█", Style::default().fg(Color::Cyan)),
+            Span::raw(" │ Enter:confirm │ Esc:cancel"),
+        ]),
+        InputMode::Normal => {
+            let hints = if app.done {
+                "↑/↓:nav │ Tab:panel │ 1/2/3:filter │ /:search │ q/Enter:exit"
+            } else {
+                "↑/↓:nav │ Tab:panel │ 1/2/3:filter │ /:search │ q:quit"
+            };
+            Line::from(hints)
+        }
     };
 
-    let footer = Paragraph::new(hints)
-        .style(Style::default().fg(Color::DarkGray))
+    let style = if app.input_mode == InputMode::Search {
+        Style::default().fg(Color::Cyan)
+    } else {
+        Style::default().fg(Color::DarkGray)
+    };
+
+    let footer = Paragraph::new(content)
+        .style(style)
         .alignment(Alignment::Center)
         .block(Block::default().borders(Borders::ALL));
     frame.render_widget(footer, area);
@@ -978,5 +1116,110 @@ mod tests {
         let content = format_detail_content(&result);
         assert!(content.contains("SKIPPED"));
         assert!(content.contains("not implemented"));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Search Tests
+    // ─────────────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn app_search_mode_enter_exit() {
+        let mut app = App::new(0);
+        assert_eq!(app.input_mode, InputMode::Normal);
+
+        app.enter_search_mode();
+        assert_eq!(app.input_mode, InputMode::Search);
+
+        app.exit_search_mode();
+        assert_eq!(app.input_mode, InputMode::Normal);
+    }
+
+    #[test]
+    fn app_search_push_pop() {
+        let mut app = App::new(0);
+        app.enter_search_mode();
+
+        app.search_push('t');
+        assert_eq!(app.search_query, "t");
+
+        app.search_push('e');
+        app.search_push('s');
+        app.search_push('t');
+        assert_eq!(app.search_query, "test");
+
+        app.search_pop();
+        assert_eq!(app.search_query, "tes");
+    }
+
+    #[test]
+    fn app_search_filters_results() {
+        let mut app = App::new(3);
+        app.add_result(make_pass_result("math.ABS"));
+        app.add_result(make_pass_result("text.CONCAT"));
+        app.add_result(make_pass_result("math.SQRT"));
+
+        assert_eq!(app.filtered_results().len(), 3);
+
+        app.search_push('m');
+        app.search_push('a');
+        app.search_push('t');
+        app.search_push('h');
+
+        let filtered = app.filtered_results();
+        assert_eq!(filtered.len(), 2);
+        assert!(filtered.iter().all(|r| r.name().contains("math")));
+    }
+
+    #[test]
+    fn app_search_case_insensitive() {
+        let mut app = App::new(2);
+        app.add_result(make_pass_result("Math.ABS"));
+        app.add_result(make_pass_result("text.concat"));
+
+        app.search_push('M');
+        app.search_push('A');
+        app.search_push('T');
+        app.search_push('H');
+
+        assert_eq!(app.filtered_results().len(), 1);
+    }
+
+    #[test]
+    fn app_search_exit_clears_query() {
+        let mut app = App::new(2);
+        app.add_result(make_pass_result("test1"));
+        app.add_result(make_pass_result("test2"));
+
+        app.enter_search_mode();
+        app.search_push('1');
+        assert_eq!(app.filtered_results().len(), 1);
+
+        app.exit_search_mode();
+        assert!(app.search_query.is_empty());
+        assert_eq!(app.filtered_results().len(), 2);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Category Color Tests
+    // ─────────────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn category_colors() {
+        assert_eq!(category_color("math.ABS"), Color::Blue);
+        assert_eq!(category_color("aggregation.SUM"), Color::Blue);
+        assert_eq!(category_color("text.CONCAT"), Color::Yellow);
+        assert_eq!(category_color("date.TODAY"), Color::Magenta);
+        assert_eq!(category_color("logical.IF"), Color::Cyan);
+        assert_eq!(category_color("lookup.CHOOSE"), Color::Green);
+        assert_eq!(category_color("unknown.TEST"), Color::White);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Input Mode Tests
+    // ─────────────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn input_mode_default() {
+        assert_eq!(InputMode::default(), InputMode::Normal);
     }
 }
