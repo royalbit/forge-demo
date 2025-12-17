@@ -5,7 +5,8 @@
 //! - v1.7.0: Function coverage report (48/48 functions validated)
 //! - v1.8.0: R&D preview teaser (shows locked functions count)
 //! - v1.9.0: Side-by-side comparison mode (toggle with `c` key)
-//! - v2.1.0: Performance mode (p key - skip Gnumeric validation)
+//! - v2.1.0: Perf mode (p key - parallel forge calculate, skip Gnumeric)
+//! - v2.1.0: Batch mode (b key - single XLSX, one Gnumeric call)
 
 mod app;
 mod draw;
@@ -57,6 +58,19 @@ fn run_tests(
         return Ok(true);
     }
 
+    if perf_mode {
+        // Perf mode: parallel execution with rayon
+        terminal.draw(|frame| draw_ui(frame, app))?;
+        let results = runner.run_perf_parallel();
+        for result in results {
+            app.add_result(result);
+        }
+        terminal.draw(|frame| draw_ui(frame, app))?;
+        app.mark_done();
+        return Ok(true);
+    }
+
+    // Normal mode: sequential with Gnumeric validation
     // First, add all skip results
     for skip_case in runner.skip_cases() {
         app.add_result(crate::types::TestResult::Skip {
@@ -77,11 +91,7 @@ fn run_tests(
             }
         }
         terminal.draw(|frame| draw_ui(frame, app))?;
-        let result = if perf_mode {
-            runner.run_perf_test(&test_case)
-        } else {
-            runner.run_test(&test_case)
-        };
+        let result = runner.run_test(&test_case);
         app.add_result(result);
         terminal.draw(|frame| draw_ui(frame, app))?;
     }

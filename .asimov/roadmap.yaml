@@ -6,6 +6,13 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 completed:
+  - version: "2.1.0"
+    date: "2025-12-16"
+    summary: "Performance Testing Mode"
+    deliverables:
+      - "p key: Perf mode - parallel forge calculate, skip Gnumeric"
+      - "b key: Batch mode - run all formulas in single XLSX"
+      - "Parallel execution with rayon for concurrent tests"
   - version: "2.0.0"
     date: "2025-12-16"
     summary: "Full 48-Function E2E Coverage"
@@ -17,16 +24,7 @@ completed:
 # CURRENT
 # ═══════════════════════════════════════════════════════════════════════════════
 
-current:
-  version: "2.1.0"
-  summary: "Performance Testing Mode"
-  priority: HIGH
-  status: wip
-  notes: "Fast testing without Gnumeric roundtrip overhead"
-  deliverables:
-    - "p key: Perf mode - test forge calculate engine, skip Gnumeric [DONE]"
-    - "b key: Batch mode - run all formulas in single XLSX [DONE]"
-    - "Parallel execution with rayon for concurrent tests"
+current: null
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # BACKLOG

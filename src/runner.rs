@@ -13,6 +13,8 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use rayon::prelude::*;
+
 use crate::engine::SpreadsheetEngine;
 use crate::types::{
     extract_skip_cases, extract_test_cases, SkipCase, TestCase, TestResult, TestSpec,
@@ -436,6 +438,32 @@ assumptions:
             }
         }
         Err(format!("Could not find {var_name} in output"))
+    }
+
+    /// Runs all perf tests in parallel using rayon.
+    ///
+    /// Tests formula calculation via `forge calculate` concurrently.
+    /// Returns results in the same order as test cases.
+    pub fn run_perf_parallel(&self) -> Vec<TestResult> {
+        // Skip results first (not parallelized - usually just one)
+        let mut results: Vec<TestResult> = self
+            .skip_cases
+            .iter()
+            .map(|sc| TestResult::Skip {
+                name: sc.name.clone(),
+                reason: sc.reason.clone(),
+            })
+            .collect();
+
+        // Run all test cases in parallel
+        let parallel_results: Vec<TestResult> = self
+            .test_cases
+            .par_iter()
+            .map(|tc| self.run_perf_test(tc))
+            .collect();
+
+        results.extend(parallel_results);
+        results
     }
 
     /// Runs a single test case.
