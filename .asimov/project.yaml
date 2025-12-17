@@ -115,14 +115,28 @@ forge_e2e:
     tolerance: "none (exact match - financial tool)"
     on_mismatch: "Show expected vs got with colored diff"
 
-  engine:
-    name: "Gnumeric (ssconvert)"
-    command: "ssconvert --recalc"
-    install:
-      macos: "brew install gnumeric"
-      linux_deb: "sudo apt install gnumeric"
-      linux_rpm: "sudo dnf install gnumeric"
-    verify: "ssconvert --version"
+  # Validation engines (see forge-e2e ADR-002)
+  # - Gnumeric: Primary validation for Excel functions
+  # - R: Statistical validation (gold standard) - future, when demo adds stats
+  # - Python: REMOVED - R is sufficient, scipy just ports R algorithms
+  engines:
+    gnumeric:
+      name: "Gnumeric (ssconvert)"
+      purpose: "Primary validation for all 48 Excel functions"
+      command: "ssconvert --recalc"
+      install:
+        macos: "brew install gnumeric"
+        linux_deb: "sudo apt install gnumeric"
+        linux_rpm: "sudo dnf install gnumeric"
+      verify: "ssconvert --version"
+    r:
+      name: "R (stats, boot)"
+      purpose: "Statistical validation - gold standard (future)"
+      note: "Not needed for demo build (no statistical functions)"
+      install:
+        macos: "brew install r && R -e 'install.packages(\"boot\")'"
+        linux_deb: "sudo apt install r-base && R -e 'install.packages(\"boot\")'"
+      verify: "R --version"
 
   scripts:
     run_demo: |
