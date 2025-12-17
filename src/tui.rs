@@ -8,10 +8,13 @@
 //! - Filter view: all/passed/failed (toggle with 1/2/3 keys)
 //! - Search mode with `/` key to filter by test name
 //! - Color-coded function categories (math, text, date, etc.)
+//! - Export results to JSON with `s` key
 
 use std::fmt::Write as _;
+use std::fs;
 use std::io::{self, stdout};
-use std::time::Duration;
+use std::path::PathBuf;
+use std::time::{Duration, Instant};
 
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
@@ -163,7 +166,12 @@ pub struct App {
     input_mode: InputMode,
     /// Search query string.
     search_query: String,
+    /// Status message to display (with expiration time).
+    status_message: Option<(String, Instant)>,
 }
+
+/// Duration to show status messages.
+const STATUS_MESSAGE_DURATION: Duration = Duration::from_secs(3);
 
 impl App {
     /// Creates a new [`App`] with the given total test count.
@@ -183,6 +191,7 @@ impl App {
             filtered_indices: Vec::new(),
             input_mode: InputMode::default(),
             search_query: String::new(),
+            status_message: None,
         }
     }
 
@@ -266,6 +275,52 @@ impl App {
         if !self.filtered_indices.is_empty() {
             self.list_state.select(Some(0));
         }
+    }
+
+    /// Sets a status message that will be displayed temporarily.
+    pub fn set_status(&mut self, message: impl Into<String>) {
+        self.status_message = Some((message.into(), Instant::now()));
+    }
+
+    /// Returns the current status message if it hasn't expired.
+    pub fn status_message(&self) -> Option<&str> {
+        self.status_message.as_ref().and_then(|(msg, created)| {
+            if created.elapsed() < STATUS_MESSAGE_DURATION {
+                Some(msg.as_str())
+            } else {
+                None
+            }
+        })
+    }
+
+    /// Saves results to a JSON file.
+    ///
+    /// Returns the path where the file was saved.
+    pub fn save_to_json(&mut self) -> Result<PathBuf, String> {
+        let filename = format!(
+            "forge-e2e-results-{}.json",
+            chrono::Local::now().format("%Y%m%d-%H%M%S")
+        );
+        let path = PathBuf::from(&filename);
+
+        let output = serde_json::json!({
+            "timestamp": chrono::Local::now().to_rfc3339(),
+            "summary": {
+                "total": self.results.len(),
+                "passed": self.passed,
+                "failed": self.failed,
+                "skipped": self.skipped,
+            },
+            "results": &self.results,
+        });
+
+        let json = serde_json::to_string_pretty(&output)
+            .map_err(|e| format!("Failed to serialize: {e}"))?;
+
+        fs::write(&path, json).map_err(|e| format!("Failed to write file: {e}"))?;
+
+        self.set_status(format!("Saved to {filename}"));
+        Ok(path)
     }
 
     /// Sets the filter mode and updates the filtered indices.
@@ -422,6 +477,12 @@ fn run_app(
                             }
                             // Search mode
                             KeyCode::Char('/') => app.enter_search_mode(),
+                            // Save results
+                            KeyCode::Char('s') if app.done => {
+                                if let Err(e) = app.save_to_json() {
+                                    app.set_status(format!("Error: {e}"));
+                                }
+                            }
                             // Navigation
                             KeyCode::Up | KeyCode::Char('k') => app.select_previous(),
                             KeyCode::Down | KeyCode::Char('j') => app.select_next(),
@@ -739,8 +800,22 @@ fn draw_stats(frame: &mut Frame, area: Rect, app: &App) {
     frame.render_widget(widget, area);
 }
 
-/// Draws the footer with key hints.
+/// Draws the footer with key hints or status message.
 fn draw_footer(frame: &mut Frame, area: Rect, app: &App) {
+    // Check for status message first
+    if let Some(status) = app.status_message() {
+        let footer = Paragraph::new(status)
+            .style(
+                Style::default()
+                    .fg(Color::Green)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .alignment(Alignment::Center)
+            .block(Block::default().borders(Borders::ALL));
+        frame.render_widget(footer, area);
+        return;
+    }
+
     let content = match app.input_mode {
         InputMode::Search => Line::from(vec![
             Span::styled("Search: ", Style::default().fg(Color::Cyan)),
@@ -750,7 +825,7 @@ fn draw_footer(frame: &mut Frame, area: Rect, app: &App) {
         ]),
         InputMode::Normal => {
             let hints = if app.done {
-                "↑/↓:nav │ Tab:panel │ 1/2/3:filter │ /:search │ q/Enter:exit"
+                "↑/↓:nav │ Tab:panel │ 1/2/3:filter │ /:search │ s:save │ q/Enter:exit"
             } else {
                 "↑/↓:nav │ Tab:panel │ 1/2/3:filter │ /:search │ q:quit"
             };
@@ -1221,5 +1296,26 @@ mod tests {
     #[test]
     fn input_mode_default() {
         assert_eq!(InputMode::default(), InputMode::Normal);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Status Message Tests
+    // ─────────────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn app_status_message_set_and_get() {
+        let mut app = App::new(0);
+        assert!(app.status_message().is_none());
+
+        app.set_status("Test message");
+        assert_eq!(app.status_message(), Some("Test message"));
+    }
+
+    #[test]
+    fn app_status_message_overwrites() {
+        let mut app = App::new(0);
+        app.set_status("First");
+        app.set_status("Second");
+        assert_eq!(app.status_message(), Some("Second"));
     }
 }

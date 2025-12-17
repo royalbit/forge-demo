@@ -5,7 +5,7 @@
 // Allow dead code for serde types that are deserialized but not all fields used
 #![allow(dead_code)]
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -79,7 +79,8 @@ pub struct TestCase {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Result of running a test.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
+#[serde(tag = "status", rename_all = "lowercase")]
 pub enum TestResult {
     /// Test passed - actual matches expected.
     Pass {
